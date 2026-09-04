@@ -8,100 +8,45 @@ import {ICoopVault} from "./interfaces/ICoopVault.sol";
 import {ISavings} from "./interfaces/ISavings.sol";
 import {ICreditScore} from "./interfaces/ICreditScore.sol";
 import {IActuarialEngine} from "./interfaces/IActuarialEngine.sol";
+import {ILoanEngine} from "./interfaces/ILoanEngine.sol";
 
-contract LoanEngine {
+contract LoanEngine is ILoanEngine {
     using SafeERC20 for IERC20;
 
     /*//////////////////////////////////////////////////////////////
-                            ERRORS
+                            CONSTANTS
     //////////////////////////////////////////////////////////////*/
-    error InvalidAddress();
-    error MemberInactive();
-    error InvalidLoanAmount();
-    error NoSavings();
-    error LoanAmountTooHigh();
-    error InsufficientLiquidity();
-    error ActiveLoanExists();
-    error RiskTooHigh();
-    error LoanNotFound();
-    error InvalidAmount();
-    error NotLoanBorrower();
-    error LoanNotActive();
-    error LoanNotPending();
-    error LoanAlreadyRepaid();
-    error TransferFailed();
 
-    /*//////////////////////////////////////////////////////////////
-                            EVENTS
-    //////////////////////////////////////////////////////////////*/
-    event LoanCreated(
-        uint256 indexed loanId,
-        address indexed borrower,
-        uint256 principal,
-        uint256 interestRateBps,
-        uint256 duration,
-        uint256 totalRepayment
-    );
-
-    event LoanRepaid(uint256 indexed loanId, address indexed borrower, uint256 amount);
-
-    event LoanCancelled(uint256 indexed loanId);
-
-    event LoanDefaulted(uint256 indexed loanId);
-
-    /*//////////////////////////////////////////////////////////////
-                            ENUMS
-    //////////////////////////////////////////////////////////////*/
-    enum LoanStatus {
-        Pending,
-        Active,
-        Repaid,
-        Defaulted,
-        Cancelled
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                            STRUCTS
-    //////////////////////////////////////////////////////////////*/
-    struct Loan {
-        uint256 loanId;
-        address borrower;
-        uint256 principal;
-        uint256 interestRateBps;
-        uint256 duration;
-        uint256 totalRepayment;
-        uint256 amountRepaid;
-        uint256 startDate;
-        LoanStatus status;
-    }
-
-    struct LoanTerms {
-        uint256 principal;
-        uint256 interestRateBps;
-        uint256 duration;
-        uint256 totalRepayment;
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                        IMMUTABLE VARIABLES
-    //////////////////////////////////////////////////////////////*/
-    ICoopVault private immutable i_coopVault;
-    ISavings private immutable i_savings;
-    ICreditScore private immutable i_creditScore;
-    IActuarialEngine private immutable i_actuarialEngine;
-    IERC20 public immutable i_stableCoin;
-
-    /*//////////////////////////////////////////////////////////////
-                                CONSTANTS
-    //////////////////////////////////////////////////////////////*/
     uint256 private constant VERY_LOW_RATE_BPS = 500;
     uint256 private constant LOW_RATE_BPS = 700;
     uint256 private constant MEDIUM_RATE_BPS = 1_000;
     uint256 private constant HIGH_RATE_BPS = 1_500;
 
+    // A member's borrowing capacity is linked to their savings.
+    // Maximum loan = 3x member savings.
+    uint256 private constant MAX_LOAN_MULTIPLE = 3;
+
+    // One repayment period is 30 days.
+    uint256 private constant PAYMENT_INTERVAL = 30 days;
+
+    // Borrower receives a 7-day grace period after the due date.
+    uint256 private constant DEFAULT_GRACE_PERIOD = 7 days;
+
+    /*//////////////////////////////////////////////////////////////
+                        IMMUTABLE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    ICoopVault private immutable i_coopVault;
+    ISavings private immutable i_savings;
+    ICreditScore private immutable i_creditScore;
+    IActuarialEngine private immutable i_actuarialEngine;
+
+    IERC20 public immutable i_stableCoin;
+
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
+
     uint256 private s_nextLoanId;
 
     mapping(uint256 => Loan) private s_loans;
@@ -112,16 +57,10 @@ contract LoanEngine {
 
     uint256 private s_totalOutstandingDebt;
 
-    // A member's borrowing capacity is linked to how much they have saved. (Loan-to-Savings policy)
-    uint256 private constant MAX_LOAN_MULTIPLE = 3;
-
-    /*//////////////////////////////////////////////////////////////
-                            MODIFIERS
-    //////////////////////////////////////////////////////////////*/
-
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
+
     constructor(
         address coopVault,
         address savings,
@@ -145,10 +84,12 @@ contract LoanEngine {
     /*//////////////////////////////////////////////////////////////
                         EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
     /**
-     * @notice Allows an active cooperative member to request and receive a loan.
+     * @notice Allows an active cooperative member to request and receive
+     *         a loan immediately.
      *
-     * @dev Version 1 lending flow:
+     * @dev Version 1 lending flow remains unchanged:
      *
      *      Member
      *        |
@@ -162,38 +103,33 @@ contract LoanEngine {
      *      Assess credit risk
      *        |
      *        v
-     *      Calculate repayment terms
+     *      Calculate loan terms
      *        |
      *        v
-     *      Create loan record
+     *      Create loan
      *        |
      *        v
-     *      Update protocol accounting
+     *      Update accounting
      *        |
      *        v
      *      Transfer stablecoin
      *
-     *      Version 1 decisions:
-     *      - Loans are approved immediately after validation.
-     *      - Loan status starts as Active.
-     *      - No separate approval workflow exists.
-     *      - No monthly repayment schedule exists.
-     *      - Repayments are flexible partial payments.
+     *      The main addition is a repayment schedule:
+     *      - Monthly payment
+     *      - Next due date
+     *      - Default grace period
      *
-     *      Future versions may introduce:
-     *      - Pending loan applications.
-     *      - Governance/member approval.
-     *      - Monthly installments.
-     *      - Automated repayment schedules.
-     *      - Treasury-based loan disbursement.
-     *
-     * @param principal Amount of stablecoin requested by the member.
-     * @param duration Loan duration used to calculate repayment terms.
+     * @param principal Amount of stablecoin requested.
+     * @param duration Loan duration in months.
      */
     function applyForLoan(uint256 principal, uint256 duration) external {
         _validateMember(msg.sender);
 
         _validateLoanAmount(msg.sender, principal);
+
+        if (duration == 0) {
+            revert InvalidDuration();
+        }
 
         uint256 interestRateBps = _determineInterestRate(msg.sender);
 
@@ -205,63 +141,31 @@ contract LoanEngine {
 
         i_stableCoin.safeTransfer(msg.sender, principal);
 
-        emit LoanCreated(loanId, msg.sender, principal, interestRateBps, duration, terms.totalRepayment);
+        emit LoanCreated(
+            loanId,
+            msg.sender,
+            principal,
+            interestRateBps,
+            duration,
+            terms.monthlyPayment,
+            terms.totalRepayment,
+            s_loans[loanId].nextDueDate
+        );
     }
 
     /**
-     * @notice Allows a borrower to make a repayment toward an active loan.
+     * @notice Allows a borrower to make a scheduled repayment.
      *
-     * @dev Version 1 repayment model:
+     * @dev Repayment rules:
      *
-     *      The protocol does not enforce monthly installments.
-     *      Borrowers may repay any amount at any time until
-     *      the total repayment obligation has been fulfilled.
+     *      - Regular installments must equal monthlyPayment.
+     *      - The final payment may be less than monthlyPayment if
+     *        rounding created a smaller remaining balance.
+     *      - After a successful installment, nextDueDate advances
+     *        by 30 days.
      *
-     *      Repayment flow:
-     *
-     *      Borrower
-     *        |
-     *        v
-     *      Validate loan ownership and status
-     *        |
-     *        v
-     *      Validate repayment amount
-     *        |
-     *        v
-     *      Transfer stablecoin to protocol
-     *        |
-     *        v
-     *      Update loan repayment balance
-     *        |
-     *        v
-     *      Update protocol debt accounting
-     *        |
-     *        v
-     *      Mark loan as Repaid if fully settled
-     *
-     *      Example:
-     *
-     *      Loan repayment = 11,000 USDC
-     *
-     *      Borrower may repay:
-     *      - 2,000 today
-     *      - 5,000 next month
-     *      - 4,000 later
-     *
-     *      Once amountRepaid equals totalRepayment,
-     *      the loan status changes to Repaid.
-     *
-     *      Version 1 does not include:
-     *      - Monthly payment schedules.
-     *      - Due dates.
-     *      - Late payment penalties.
-     *      - Automated repayment collection.
-     *
-     *      Future versions may introduce:
-     *      - Installment-based repayments.
-     *      - Grace periods.
-     *      - Credit score updates after repayment.
-     *      - Automated payment plans.
+     *      This keeps the existing repayment workflow while adding
+     *      a predictable repayment schedule.
      *
      * @param loanId Identifier of the loan being repaid.
      * @param amount Amount of stablecoin being repaid.
@@ -291,14 +195,33 @@ contract LoanEngine {
             revert InvalidAmount();
         }
 
+        /*
+         * Regular payments must match the scheduled monthly payment.
+         *
+         * The only exception is the final payment, where the remaining
+         * balance may be smaller than the scheduled installment.
+         */
+        if (amount != loan.monthlyPayment && amount != remainingBalance) {
+            revert InvalidAmount();
+        }
+
         i_stableCoin.safeTransferFrom(msg.sender, address(this), amount);
 
         loan.amountRepaid += amount;
 
         _recordRepayment(amount);
 
+        /*
+         * Fully repaid loans are immediately marked as Repaid.
+         */
         if (loan.amountRepaid == loan.totalRepayment) {
             loan.status = LoanStatus.Repaid;
+        } else {
+            /*
+             * Advance the next payment date only after a successful
+             * scheduled payment.
+             */
+            loan.nextDueDate += PAYMENT_INTERVAL;
         }
 
         emit LoanRepaid(loanId, msg.sender, amount);
@@ -307,21 +230,18 @@ contract LoanEngine {
     /**
      * @notice Marks an overdue loan as defaulted.
      *
-     * @dev Version 1 default handling:
+     * @dev Default rules:
      *
-     *      Default marking is manual.
-     *      The protocol does not yet have:
+     *      A loan can be marked defaulted only when:
      *
-     *      - Automated keepers.
-     *      - Due date tracking.
-     *      - Default prediction models.
-     *      - Insurance mechanisms.
+     *      block.timestamp >
+     *      nextDueDate + DEFAULT_GRACE_PERIOD
      *
-     *      Future versions may introduce:
-     *      - Chainlink Automation/keepers.
-     *      - Credit score updates after defaults.
-     *      - Recovery mechanisms.
-     *      - Insurance pool integration.
+     *      and the loan still has an outstanding balance.
+     *
+     *      Default marking remains permissionless. Anyone can call
+     *      this function once the objective default condition has
+     *      been reached.
      *
      * @param loanId Identifier of the loan to mark as defaulted.
      */
@@ -336,6 +256,20 @@ contract LoanEngine {
             revert LoanNotActive();
         }
 
+        /*
+         * The borrower is still within the grace period.
+         */
+        if (block.timestamp <= loan.nextDueDate + DEFAULT_GRACE_PERIOD) {
+            revert PaymentNotDue();
+        }
+
+        /*
+         * Nothing remains to be paid.
+         */
+        if (loan.amountRepaid >= loan.totalRepayment) {
+            revert LoanAlreadyRepaid();
+        }
+
         loan.status = LoanStatus.Defaulted;
 
         emit LoanDefaulted(loanId);
@@ -345,7 +279,9 @@ contract LoanEngine {
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Validates that a borrower is an active coop member.
+    /**
+     * @notice Validates that a borrower is an active coop member.
+     */
     function _validateMember(address member) internal view returns (ICoopVault.Member memory coopMember) {
         coopMember = i_coopVault.getMember(member);
 
@@ -354,14 +290,14 @@ contract LoanEngine {
         }
     }
 
-    /// @notice Validates whether a requested loan amount is eligible.
+    /**
+     * @notice Validates whether a requested loan amount is eligible.
+     */
     function _validateLoanAmount(address borrower, uint256 principal) internal view {
-        // Principal must be greater than zero.
         if (principal == 0) {
             revert InvalidLoanAmount();
         }
 
-        // Fetch member savings.
         ISavings.SavingsAccount memory account = i_savings.getSavingsAccount(borrower);
 
         uint256 savingsBalance = account.balance;
@@ -370,25 +306,32 @@ contract LoanEngine {
             revert NoSavings();
         }
 
-        // Example lending policy:
-        // Maximum loan = 3x member savings.
+        /*
+         * Maximum loan = 3x member savings.
+         */
         if (principal > savingsBalance * MAX_LOAN_MULTIPLE) {
             revert LoanAmountTooHigh();
         }
 
-        // Ensure protocol has sufficient liquidity.
+        /*
+         * Ensure protocol has sufficient liquidity.
+         */
         if (i_stableCoin.balanceOf(address(this)) < principal) {
             revert InsufficientLiquidity();
         }
 
-        // Version 1:
-        // Only allow one active loan.
+        /*
+         * Version 1 allows only one active loan per member.
+         */
         if (_hasActiveLoan(borrower)) {
             revert ActiveLoanExists();
         }
     }
 
-    /// @notice Determines the borrower's interest rate.
+    /**
+     * @notice Determines the borrower's interest rate from their
+     *         credit risk tier.
+     */
     function _determineInterestRate(address borrower) internal view returns (uint256) {
         ICreditScore.RiskTier riskTier = i_creditScore.getRiskTier(borrower);
 
@@ -411,22 +354,34 @@ contract LoanEngine {
         revert RiskTooHigh();
     }
 
-    /// @notice Calculates repayment terms using the actuarial engine.
+    /**
+     * @notice Calculates the monthly repayment terms using the
+     *         actuarial engine.
+     */
     function _calculateLoanTerms(uint256 principal, uint256 interestRateBps, uint256 duration)
         internal
         view
         returns (LoanTerms memory terms)
     {
-        (, uint256 totalRepayment) = i_actuarialEngine.compoundInterest(principal, interestRateBps, duration);
+        (uint256 monthlyPayment, uint256 totalRepayment) =
+            i_actuarialEngine.calculateMonthlyPayment(principal, interestRateBps, duration);
 
         terms = LoanTerms({
-            principal: principal, interestRateBps: interestRateBps, duration: duration, totalRepayment: totalRepayment
+            principal: principal,
+            interestRateBps: interestRateBps,
+            duration: duration,
+            monthlyPayment: monthlyPayment,
+            totalRepayment: totalRepayment
         });
     }
 
-    /// @notice Creates and stores a new loan.
+    /**
+     * @notice Creates and stores a new loan.
+     */
     function _createLoan(address borrower, LoanTerms memory terms) internal returns (uint256 loanId) {
         loanId = ++s_nextLoanId;
+
+        uint256 startDate = block.timestamp;
 
         s_loans[loanId] = Loan({
             loanId: loanId,
@@ -434,9 +389,11 @@ contract LoanEngine {
             principal: terms.principal,
             interestRateBps: terms.interestRateBps,
             duration: terms.duration,
+            monthlyPayment: terms.monthlyPayment,
             totalRepayment: terms.totalRepayment,
             amountRepaid: 0,
-            startDate: block.timestamp,
+            startDate: startDate,
+            nextDueDate: startDate + PAYMENT_INTERVAL,
             status: LoanStatus.Active
         });
 
@@ -445,25 +402,24 @@ contract LoanEngine {
 
     /**
      * @notice Records accounting changes when a new loan is issued.
-     * @dev Increments the total number of loans issued and increases
-     *      the outstanding debt by the borrower's total repayment obligation.
-     * @param totalRepayment The total amount owed by the borrower over the loan duration.
      */
     function _recordLoanIssued(uint256 totalRepayment) internal {
         ++s_totalLoansIssued;
+
         s_totalOutstandingDebt += totalRepayment;
     }
 
     /**
-     * @notice Records accounting changes when a borrower makes a repayment.
-     * @dev Reduces the protocol's outstanding debt by the repayment amount.
-     * @param amount The amount repaid by the borrower.
+     * @notice Records accounting changes when a borrower makes
+     *         a repayment.
      */
     function _recordRepayment(uint256 amount) internal {
         s_totalOutstandingDebt -= amount;
     }
 
-    /// @notice Returns whether a borrower has an active loan.
+    /**
+     * @notice Returns whether a borrower has an active loan.
+     */
     function _hasActiveLoan(address borrower) internal view returns (bool) {
         uint256[] storage loanIds = s_memberLoans[borrower];
 
@@ -482,22 +438,6 @@ contract LoanEngine {
 
     /**
      * @notice Returns complete details of a loan.
-     *
-     * @dev Version 1:
-     *      Returns the stored loan information including:
-     *      - Principal borrowed.
-     *      - Interest rate applied.
-     *      - Total repayment amount.
-     *      - Amount already repaid.
-     *      - Current loan status.
-     *
-     *      Future versions may include:
-     *      - Repayment schedules.
-     *      - Next payment date.
-     *      - Installment history.
-     *
-     * @param loanId Identifier of the loan.
-     * @return loan Complete loan information.
      */
     function getLoan(uint256 loanId) external view returns (Loan memory loan) {
         if (s_loans[loanId].loanId == 0) {
@@ -509,24 +449,13 @@ contract LoanEngine {
 
     /**
      * @notice Returns all loans belonging to a member.
-     *
-     * @dev Version 1:
-     *      Returns only loans created by the borrower.
-     *
-     *      Future versions may introduce:
-     *      - Pagination.
-     *      - Filtering by status.
-     *      - Historical loan analytics.
-     *
-     * @param member Address of the cooperative member.
-     * @return loans Array containing member loans.
      */
     function getLoansByMember(address member) external view returns (Loan[] memory loans) {
         uint256[] memory loanIds = s_memberLoans[member];
 
         loans = new Loan[](loanIds.length);
 
-        for (uint256 i = 0; i < loanIds.length; i++) {
+        for (uint256 i = 0; i < loanIds.length; ++i) {
             loans[i] = s_loans[loanIds[i]];
         }
     }
@@ -534,21 +463,9 @@ contract LoanEngine {
     /**
      * @notice Returns total outstanding protocol debt.
      *
-     * @dev Version 1:
-     *      Tracks total repayment obligations from all active loans.
-     *
-     *      It increases when:
-     *      - A new loan is created.
-     *
-     *      It decreases when:
-     *      - Borrowers make repayments.
-     *
-     *      Future versions may separate:
-     *      - Principal outstanding.
-     *      - Interest outstanding.
-     *      - Defaulted debt.
-     *
-     * @return outstandingDebt Total remaining repayment obligation.
+     * @dev Includes outstanding obligations from active and defaulted
+     *      loans. Repaid loans are removed from outstanding debt
+     *      through repayments.
      */
     function getOutstandingDebt() external view returns (uint256 outstandingDebt) {
         return s_totalOutstandingDebt;
@@ -556,16 +473,6 @@ contract LoanEngine {
 
     /**
      * @notice Returns the total number of loans issued.
-     *
-     * @dev Version 1:
-     *      Counts every created loan.
-     *
-     *      Future versions may introduce:
-     *      - Active loan count.
-     *      - Defaulted loan count.
-     *      - Repaid loan count.
-     *
-     * @return totalLoans Number of loans created.
      */
     function getTotalLoansIssued() external view returns (uint256 totalLoans) {
         return s_totalLoansIssued;
@@ -573,21 +480,6 @@ contract LoanEngine {
 
     /**
      * @notice Calculates the remaining balance of a loan.
-     *
-     * @dev Version 1:
-     *      Remaining balance is calculated as:
-     *
-     *      Total Repayment - Amount Repaid
-     *
-     *      No monthly schedule exists yet.
-     *
-     *      Future versions may calculate:
-     *      - Next installment.
-     *      - Interest accrued.
-     *      - Late fees.
-     *
-     * @param loanId Identifier of the loan.
-     * @return remainingBalance Amount still owed.
      */
     function getRemainingBalance(uint256 loanId) external view returns (uint256 remainingBalance) {
         Loan memory loan = s_loans[loanId];
@@ -597,5 +489,44 @@ contract LoanEngine {
         }
 
         return loan.totalRepayment - loan.amountRepaid;
+    }
+
+    /**
+     * @notice Returns the complete repayment schedule for a loan.
+     *
+     * @dev The schedule is derived from the stored loan terms rather
+     *      than being stored as individual records, reducing storage
+     *      costs.
+     *
+     * @param loanId Identifier of the loan.
+     * @return dueDates Array of scheduled payment dates.
+     * @return payments Array of scheduled payment amounts.
+     */
+    function getRepaymentSchedule(uint256 loanId)
+        external
+        view
+        returns (uint256[] memory dueDates, uint256[] memory payments)
+    {
+        Loan memory loan = s_loans[loanId];
+
+        if (loan.loanId == 0) {
+            revert LoanNotFound();
+        }
+
+        dueDates = new uint256[](loan.duration);
+        payments = new uint256[](loan.duration);
+
+        for (uint256 i = 0; i < loan.duration; ++i) {
+            dueDates[i] = loan.startDate + ((i + 1) * PAYMENT_INTERVAL);
+
+            /*
+             * The final payment may be smaller because of rounding.
+             */
+            if (i == loan.duration - 1) {
+                payments[i] = loan.totalRepayment - (loan.monthlyPayment * (loan.duration - 1));
+            } else {
+                payments[i] = loan.monthlyPayment;
+            }
+        }
     }
 }
