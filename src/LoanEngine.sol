@@ -9,6 +9,7 @@ import {ISavings} from "./interfaces/ISavings.sol";
 import {ICreditScore} from "./interfaces/ICreditScore.sol";
 import {IActuarialEngine} from "./interfaces/IActuarialEngine.sol";
 import {ILoanEngine} from "./interfaces/ILoanEngine.sol";
+import {IArcTreasury} from "./sponsors/Arc/interfaces/IArcTreasury.sol";
 
 contract LoanEngine is ILoanEngine {
     using SafeERC20 for IERC20;
@@ -41,7 +42,11 @@ contract LoanEngine is ILoanEngine {
     ICreditScore private immutable i_creditScore;
     IActuarialEngine private immutable i_actuarialEngine;
 
+    /// @notice Stablecoin used for loan repayments.
     IERC20 public immutable i_stableCoin;
+
+    /// @notice Treasury responsible for loan disbursement liquidity.
+    IArcTreasury private immutable i_arcTreasury;
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -66,19 +71,22 @@ contract LoanEngine is ILoanEngine {
         address savings,
         address creditScore,
         address actuarialEngineAddress,
-        address _stableCoin
+        address _stableCoin,
+        address arcTreasury
     ) {
         if (coopVault == address(0)) revert InvalidAddress();
         if (savings == address(0)) revert InvalidAddress();
         if (creditScore == address(0)) revert InvalidAddress();
         if (actuarialEngineAddress == address(0)) revert InvalidAddress();
         if (_stableCoin == address(0)) revert InvalidAddress();
+        if (arcTreasury == address(0)) revert InvalidAddress();
 
         i_coopVault = ICoopVault(coopVault);
         i_savings = ISavings(savings);
         i_creditScore = ICreditScore(creditScore);
         i_actuarialEngine = IActuarialEngine(actuarialEngineAddress);
         i_stableCoin = IERC20(_stableCoin);
+        i_arcTreasury = IArcTreasury(arcTreasury);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -112,9 +120,12 @@ contract LoanEngine is ILoanEngine {
      *      Update accounting
      *        |
      *        v
-     *      Transfer stablecoin
+     *      Request USDC from ArcTreasury
      *
-     *      The main addition is a repayment schedule:
+     *      The treasury is responsible for holding lending liquidity
+     *      and releasing USDC to approved borrowers.
+     *
+     *      The repayment schedule remains:
      *      - Monthly payment
      *      - Next due date
      *      - Default grace period
@@ -139,7 +150,15 @@ contract LoanEngine is ILoanEngine {
 
         _recordLoanIssued(terms.totalRepayment);
 
-        i_stableCoin.safeTransfer(msg.sender, principal);
+        /*
+         * LoanEngine does not custody lending liquidity.
+         *
+         * ArcTreasury releases the principal directly to the borrower.
+         *
+         * LoanEngine must therefore be authorized as an operator by
+         * the ArcTreasury administrator.
+         */
+        i_arcTreasury.release(msg.sender, principal);
 
         emit LoanCreated(
             loanId,
@@ -164,8 +183,10 @@ contract LoanEngine is ILoanEngine {
      *      - After a successful installment, nextDueDate advances
      *        by 30 days.
      *
-     *      This keeps the existing repayment workflow while adding
-     *      a predictable repayment schedule.
+     *      Repayments are transferred directly from the borrower
+     *      to ArcTreasury. LoanEngine remains the spender because
+     *      the borrower approves LoanEngine before calling this
+     *      function.
      *
      * @param loanId Identifier of the loan being repaid.
      * @param amount Amount of stablecoin being repaid.
@@ -205,7 +226,14 @@ contract LoanEngine is ILoanEngine {
             revert InvalidAmount();
         }
 
-        i_stableCoin.safeTransferFrom(msg.sender, address(this), amount);
+        /*
+         * Repayment liquidity goes directly to ArcTreasury.
+         *
+         * The borrower must approve LoanEngine for `amount` before
+         * calling repayLoan(), because LoanEngine executes the
+         * ERC20 transferFrom operation.
+         */
+        i_stableCoin.safeTransferFrom(msg.sender, address(i_arcTreasury), amount);
 
         loan.amountRepaid += amount;
 
@@ -314,9 +342,9 @@ contract LoanEngine is ILoanEngine {
         }
 
         /*
-         * Ensure protocol has sufficient liquidity.
+         * Ensure the ArcTreasury has sufficient lending liquidity.
          */
-        if (i_stableCoin.balanceOf(address(this)) < principal) {
+        if (i_arcTreasury.getBalance() < principal) {
             revert InsufficientLiquidity();
         }
 

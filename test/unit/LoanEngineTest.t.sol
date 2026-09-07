@@ -3,10 +3,10 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 import {LoanEngine} from "../../src/LoanEngine.sol";
+import {ArcTreasury} from "../../src/sponsors/Arc/ArcTreasury.sol";
 
 import {ICoopVault} from "../../src/interfaces/ICoopVault.sol";
 import {ISavings} from "../../src/interfaces/ISavings.sol";
@@ -15,32 +15,63 @@ import {IActuarialEngine} from "../../src/interfaces/IActuarialEngine.sol";
 import {ILoanEngine} from "../../src/interfaces/ILoanEngine.sol";
 
 /**
+ *
  * @title LoanEngineTest
  * @author Maxwell Wire
  * @notice Unit tests for the CoopChain LoanEngine contract.
  *
  * @dev Tests cover:
- *      - Constructor validation
- *      - Loan application
- *      - Membership validation
- *      - Savings validation
- *      - Loan-to-savings limits
- *      - Liquidity checks
- *      - Active-loan restrictions
- *      - Risk-based interest rates
- *      - Actuarial loan-term calculation
- *      - Loan accounting
- *      - Loan repayment
- *      - Repayment schedules
- *      - Default rules
- *      - View functions
+ * ```
+ *    - Constructor validation
+ *   ```
+ * ```
+ *    - Loan application
+ *   ```
+ * ```
+ *    - Membership validation
+ *   ```
+ * ```
+ *    - Savings validation
+ *   ```
+ * ```
+ *    - Loan-to-savings limits
+ *   ```
+ * ```
+ *    - Arc Treasury liquidity checks
+ *   ```
+ * ```
+ *    - Active-loan restrictions
+ *   ```
+ * ```
+ *    - Risk-based interest rates
+ *   ```
+ * ```
+ *    - Actuarial loan-term calculation
+ *   ```
+ * ```
+ *    - Loan accounting
+ *   ```
+ * ```
+ *    - Loan repayment
+ *   ```
+ * ```
+ *    - Repayment schedules
+ *   ```
+ * ```
+ *    - Default rules
+ *   ```
+ * ```
+ *    - View functions
+ *   ```
+ *
  */
 contract LoanEngineTest is Test {
     /*//////////////////////////////////////////////////////////////
-                                STATE
+    STATE
     //////////////////////////////////////////////////////////////*/
 
     LoanEngine private loanEngine;
+    ArcTreasury private arcTreasury;
     ERC20Mock private stableCoin;
 
     address private coopVault = makeAddr("coopVault");
@@ -51,6 +82,14 @@ contract LoanEngineTest is Test {
     address private borrower = makeAddr("borrower");
     address private borrowerTwo = makeAddr("borrowerTwo");
     address private stranger = makeAddr("stranger");
+
+    /*
+     * Arc Testnet USDC address used internally by ArcTreasury.
+     *
+     * In production this is the real Arc Testnet USDC address.
+     * In tests, an ERC20Mock runtime is etched at this address.
+     */
+    address private constant ARC_TESTNET_USDC = 0x3600000000000000000000000000000000000000;
 
     uint256 private constant PRINCIPAL = 1_000 ether;
     uint256 private constant DURATION = 12;
@@ -68,23 +107,72 @@ contract LoanEngineTest is Test {
     uint256 private constant PAYMENT_INTERVAL = 30 days;
     uint256 private constant DEFAULT_GRACE_PERIOD = 7 days;
 
+    uint256 private constant TREASURY_LIQUIDITY = 1_000_000 ether;
+
     /*//////////////////////////////////////////////////////////////
                                 SETUP
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Deploys the LoanEngine and configures dependency mocks.
+     * @notice Deploys LoanEngine and Arc Treasury and configures
+     *         dependency mocks.
+     *
+     * @dev
+     * ArcTreasury uses a fixed Arc Testnet USDC address rather than
+     * receiving the token address through its constructor.
+     *
+     * Therefore the ERC20Mock runtime is installed at the Arc USDC
+     * address using vm.etch() so the treasury and LoanEngine operate
+     * against the same token in the unit tests.
      */
     function setUp() public {
-        stableCoin = new ERC20Mock();
-
-        loanEngine = new LoanEngine(coopVault, savings, creditScore, actuarialEngine, address(stableCoin));
+        /*
+         * Deploy the mock stablecoin implementation.
+         */
+        ERC20Mock stableCoinImplementation = new ERC20Mock();
 
         /*
-         * Fund LoanEngine with enough stablecoin liquidity
-         * for loan disbursement tests.
+         * Install the ERC20Mock runtime at the Arc Testnet USDC
+         * address used internally by ArcTreasury.
          */
-        stableCoin.mint(address(loanEngine), 1_000_000 ether);
+        vm.etch(ARC_TESTNET_USDC, address(stableCoinImplementation).code);
+
+        /*
+         * Point the test token reference at the exact address used
+         * by ArcTreasury.
+         */
+        stableCoin = ERC20Mock(ARC_TESTNET_USDC);
+
+        /*
+         * Deploy the Arc Treasury.
+         *
+         * The test contract becomes the treasury administrator.
+         */
+        arcTreasury = new ArcTreasury();
+
+        /*
+         * Deploy LoanEngine with the Arc Treasury as its
+         * settlement and liquidity provider.
+         */
+        loanEngine =
+            new LoanEngine(coopVault, savings, creditScore, actuarialEngine, ARC_TESTNET_USDC, address(arcTreasury));
+
+        /*
+         * Authorize LoanEngine as an Arc Treasury operator.
+         *
+         * This allows LoanEngine to call release() when
+         * disbursing loan principals.
+         */
+        arcTreasury.setOperatorAuthorization(address(loanEngine), true);
+
+        /*
+         * Fund the Arc Treasury with sufficient stablecoin
+         * liquidity for loan disbursement tests.
+         *
+         * The mock is now running at the same address used by
+         * ArcTreasury, so minting directly to the treasury works.
+         */
+        stableCoin.mint(address(arcTreasury), TREASURY_LIQUIDITY);
 
         /*
          * Default borrower configuration.
@@ -112,7 +200,7 @@ contract LoanEngineTest is Test {
     function test_RevertWhen_CoopVaultIsZeroAddress() public {
         vm.expectRevert(ILoanEngine.InvalidAddress.selector);
 
-        new LoanEngine(address(0), savings, creditScore, actuarialEngine, address(stableCoin));
+        new LoanEngine(address(0), savings, creditScore, actuarialEngine, address(stableCoin), address(arcTreasury));
     }
 
     /**
@@ -121,7 +209,7 @@ contract LoanEngineTest is Test {
     function test_RevertWhen_SavingsIsZeroAddress() public {
         vm.expectRevert(ILoanEngine.InvalidAddress.selector);
 
-        new LoanEngine(coopVault, address(0), creditScore, actuarialEngine, address(stableCoin));
+        new LoanEngine(coopVault, address(0), creditScore, actuarialEngine, address(stableCoin), address(arcTreasury));
     }
 
     /**
@@ -130,7 +218,7 @@ contract LoanEngineTest is Test {
     function test_RevertWhen_CreditScoreIsZeroAddress() public {
         vm.expectRevert(ILoanEngine.InvalidAddress.selector);
 
-        new LoanEngine(coopVault, savings, address(0), actuarialEngine, address(stableCoin));
+        new LoanEngine(coopVault, savings, address(0), actuarialEngine, address(stableCoin), address(arcTreasury));
     }
 
     /**
@@ -139,7 +227,7 @@ contract LoanEngineTest is Test {
     function test_RevertWhen_ActuarialEngineIsZeroAddress() public {
         vm.expectRevert(ILoanEngine.InvalidAddress.selector);
 
-        new LoanEngine(coopVault, savings, creditScore, address(0), address(stableCoin));
+        new LoanEngine(coopVault, savings, creditScore, address(0), address(stableCoin), address(arcTreasury));
     }
 
     /**
@@ -148,7 +236,16 @@ contract LoanEngineTest is Test {
     function test_RevertWhen_StableCoinIsZeroAddress() public {
         vm.expectRevert(ILoanEngine.InvalidAddress.selector);
 
-        new LoanEngine(coopVault, savings, creditScore, actuarialEngine, address(0));
+        new LoanEngine(coopVault, savings, creditScore, actuarialEngine, address(0), address(arcTreasury));
+    }
+
+    /**
+     * @notice Ensures the constructor rejects a zero Arc Treasury address.
+     */
+    function test_RevertWhen_ArcTreasuryIsZeroAddress() public {
+        vm.expectRevert(ILoanEngine.InvalidAddress.selector);
+
+        new LoanEngine(coopVault, savings, creditScore, actuarialEngine, address(stableCoin), address(0));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -240,6 +337,19 @@ contract LoanEngineTest is Test {
         loanEngine.applyForLoan(PRINCIPAL, DURATION);
     }
 
+    /**
+     * @notice Verifies loan disbursement consumes Arc Treasury liquidity.
+     */
+    function test_ApplyForLoan_ConsumesTreasuryLiquidity() public {
+        uint256 treasuryBalanceBefore = arcTreasury.getBalance();
+
+        vm.prank(borrower);
+
+        loanEngine.applyForLoan(PRINCIPAL, DURATION);
+
+        assertEq(arcTreasury.getBalance(), treasuryBalanceBefore - PRINCIPAL);
+    }
+
     /*//////////////////////////////////////////////////////////////
                     MEMBERSHIP VALIDATION
     //////////////////////////////////////////////////////////////*/
@@ -327,12 +437,18 @@ contract LoanEngineTest is Test {
     }
 
     /**
-     * @notice Verifies insufficient protocol liquidity prevents lending.
+     * @notice Verifies insufficient Arc Treasury liquidity prevents lending.
      */
     function test_RevertWhen_InsufficientLiquidity() public {
-        uint256 currentLiquidity = stableCoin.balanceOf(address(loanEngine));
+        uint256 currentLiquidity = arcTreasury.getBalance();
 
-        stableCoin.burn(address(loanEngine), currentLiquidity);
+        /*
+         * Remove all treasury liquidity through the treasury
+         * administrator.
+         */
+        arcTreasury.withdraw(address(this), currentLiquidity);
+
+        assertEq(arcTreasury.getBalance(), 0);
 
         vm.expectRevert(ILoanEngine.InsufficientLiquidity.selector);
 
@@ -441,9 +557,6 @@ contract LoanEngineTest is Test {
 
     /**
      * @notice Verifies the highest risk tier is rejected.
-     *
-     * @dev This assumes ICreditScore.RiskTier contains a value named
-     *      VeryHigh, matching the LoanEngine implementation.
      */
     function test_RevertWhen_RiskIsTooHigh() public {
         _mockRiskTier(borrower, ICreditScore.RiskTier.VeryHigh);
@@ -616,12 +729,12 @@ contract LoanEngineTest is Test {
     }
 
     /**
-     * @notice Verifies repayment transfers stablecoins into LoanEngine.
+     * @notice Verifies repayment transfers stablecoins into Arc Treasury.
      */
-    function test_RepayLoan_TransfersTokens() public {
+    function test_RepayLoan_TransfersTokensToTreasury() public {
         _prepareRepayment();
 
-        stableCoin.mint(borrower, MONTHLY_PAYMENT);
+        uint256 treasuryBalanceBefore = arcTreasury.getBalance();
 
         vm.startPrank(borrower);
 
@@ -631,12 +744,13 @@ contract LoanEngineTest is Test {
 
         vm.stopPrank();
 
-        assertEq(stableCoin.balanceOf(address(loanEngine)), 1_000_000 ether + MONTHLY_PAYMENT - PRINCIPAL);
+        assertEq(arcTreasury.getBalance(), treasuryBalanceBefore + MONTHLY_PAYMENT);
+
+        assertEq(stableCoin.balanceOf(address(loanEngine)), 0);
     }
 
     /**
-     * @notice Verifies the next due date advances by 30 days
-     *         after a successful installment.
+     * @notice Verifies repayment advances the next due date by 30 days.
      */
     function test_RepayLoan_AdvancesNextDueDate() public {
         _prepareRepayment();
@@ -666,7 +780,8 @@ contract LoanEngineTest is Test {
     }
 
     /**
-     * @notice Verifies repayments larger than the remaining balance are rejected.
+     * @notice Verifies repayments larger than the remaining balance
+     *         are rejected.
      */
     function test_RevertWhen_RepaymentExceedsRemainingBalance() public {
         _prepareRepayment();
@@ -721,24 +836,10 @@ contract LoanEngineTest is Test {
     function test_RevertWhen_RepayingInactiveLoan() public {
         _prepareRepayment();
 
-        /*
-         * Fully repay the loan to change its status to Repaid.
-         */
-        stableCoin.mint(borrower, TOTAL_REPAYMENT);
-
         vm.startPrank(borrower);
-
-        stableCoin.approve(address(loanEngine), TOTAL_REPAYMENT);
 
         loanEngine.repayLoan(1, MONTHLY_PAYMENT);
 
-        /*
-         * We cannot fully repay using MONTHLY_PAYMENT in this
-         * test because the configured values are exact.
-         *
-         * Instead, warp and use the remaining amount as the final
-         * payment.
-         */
         uint256 remaining = loanEngine.getRemainingBalance(1);
 
         stableCoin.approve(address(loanEngine), remaining);
@@ -760,15 +861,13 @@ contract LoanEngineTest is Test {
     function test_RepayLoan_FinalPaymentMarksLoanRepaid() public {
         _prepareRepayment();
 
-        stableCoin.mint(borrower, TOTAL_REPAYMENT);
-
         vm.startPrank(borrower);
-
-        stableCoin.approve(address(loanEngine), TOTAL_REPAYMENT);
 
         loanEngine.repayLoan(1, MONTHLY_PAYMENT);
 
         uint256 remaining = loanEngine.getRemainingBalance(1);
+
+        stableCoin.approve(address(loanEngine), remaining);
 
         loanEngine.repayLoan(1, remaining);
 
@@ -782,26 +881,19 @@ contract LoanEngineTest is Test {
     }
 
     /**
-     * @notice Verifies the final repayment can be smaller than monthlyPayment.
+     * @notice Verifies the final repayment can be smaller than
+     *         monthlyPayment.
      */
     function test_RepayLoan_FinalPaymentCanBeRemainingBalance() public {
         _prepareRepayment();
 
-        stableCoin.mint(borrower, TOTAL_REPAYMENT);
-
         vm.startPrank(borrower);
 
-        stableCoin.approve(address(loanEngine), TOTAL_REPAYMENT);
-
-        /*
-         * First payment.
-         */
         loanEngine.repayLoan(1, MONTHLY_PAYMENT);
 
-        /*
-         * Pay the exact remaining balance.
-         */
         uint256 remaining = loanEngine.getRemainingBalance(1);
+
+        stableCoin.approve(address(loanEngine), remaining);
 
         loanEngine.repayLoan(1, remaining);
 
@@ -815,8 +907,8 @@ contract LoanEngineTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice Verifies the repayment schedule has the expected number
-     *         of installments.
+     * @notice Verifies the repayment schedule has the expected
+     *         number of installments.
      */
     function test_GetRepaymentSchedule_ReturnsCorrectLength() public {
         vm.prank(borrower);
@@ -862,7 +954,8 @@ contract LoanEngineTest is Test {
     }
 
     /**
-     * @notice Verifies the final scheduled payment accounts for rounding.
+     * @notice Verifies the final scheduled payment accounts for
+     *         rounding.
      */
     function test_GetRepaymentSchedule_FinalPaymentCompletesTotal() public {
         vm.prank(borrower);
@@ -881,7 +974,8 @@ contract LoanEngineTest is Test {
     }
 
     /**
-     * @notice Verifies nonexistent loans cannot return a repayment schedule.
+     * @notice Verifies nonexistent loans cannot return a repayment
+     *         schedule.
      */
     function test_RevertWhen_ScheduleLoanDoesNotExist() public {
         vm.expectRevert(ILoanEngine.LoanNotFound.selector);
@@ -903,9 +997,6 @@ contract LoanEngineTest is Test {
 
         ILoanEngine.Loan memory loan = loanEngine.getLoan(1);
 
-        /*
-         * Move exactly to the end of the grace period.
-         */
         vm.warp(loan.nextDueDate + DEFAULT_GRACE_PERIOD);
 
         vm.expectRevert(ILoanEngine.PaymentNotDue.selector);
@@ -914,7 +1005,8 @@ contract LoanEngineTest is Test {
     }
 
     /**
-     * @notice Verifies an overdue loan can be defaulted after the grace period.
+     * @notice Verifies an overdue loan can be defaulted after
+     *         the grace period.
      */
     function test_MarkDefaulted_AfterGracePeriod() public {
         vm.prank(borrower);
@@ -942,7 +1034,8 @@ contract LoanEngineTest is Test {
     }
 
     /**
-     * @notice Verifies an active loan cannot be defaulted before its grace period.
+     * @notice Verifies an active loan cannot be defaulted before
+     *         its grace period.
      */
     function test_RevertWhen_DefaultingBeforeDueDate() public {
         vm.prank(borrower);
@@ -960,15 +1053,13 @@ contract LoanEngineTest is Test {
     function test_RevertWhen_DefaultingRepaidLoan() public {
         _prepareRepayment();
 
-        stableCoin.mint(borrower, TOTAL_REPAYMENT);
-
         vm.startPrank(borrower);
-
-        stableCoin.approve(address(loanEngine), TOTAL_REPAYMENT);
 
         loanEngine.repayLoan(1, MONTHLY_PAYMENT);
 
         uint256 remaining = loanEngine.getRemainingBalance(1);
+
+        stableCoin.approve(address(loanEngine), remaining);
 
         loanEngine.repayLoan(1, remaining);
 
@@ -1129,23 +1220,10 @@ contract LoanEngineTest is Test {
 
     /**
      * @notice Mocks an active CoopChain member.
-     *
-     * @dev Adjust the Member struct construction here if the current
-     *      ICoopVault.Member definition contains additional fields.
      */
     function _mockActiveMember(address member) internal {
         ICoopVault.Member memory coopMember;
 
-        /*
-         * The implementation only reads `active`.
-         *
-         * ABI encoding is performed using the complete struct.
-         * This assignment assumes `active` is the first/only field
-         * relevant to the returned Member struct.
-         *
-         * If ICoopVault.Member contains additional fields, populate
-         * them according to the current interface definition.
-         */
         coopMember.active = true;
 
         vm.mockCall(coopVault, abi.encodeWithSelector(ICoopVault.getMember.selector, member), abi.encode(coopMember));
@@ -1164,9 +1242,6 @@ contract LoanEngineTest is Test {
 
     /**
      * @notice Mocks a member savings balance.
-     *
-     * @dev Adjust the SavingsAccount struct construction if the current
-     *      ISavings interface contains additional required fields.
      */
     function _mockSavings(address member, uint256 balance) internal {
         ISavings.SavingsAccount memory account;
