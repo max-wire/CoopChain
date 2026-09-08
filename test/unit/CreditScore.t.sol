@@ -32,7 +32,7 @@ contract CreditScoreTest is Test {
 
     bytes32 internal charlieNationalId = keccak256("charlie-national-id");
 
-    uint256 internal constant INITIAL_BALANCE = 1_000_000e18;
+    uint256 internal constant INITIAL_BALANCE = 1_000_000e6;
 
     uint256 internal constant SIX_MONTHS = 180 days;
 
@@ -209,7 +209,7 @@ contract CreditScoreTest is Test {
 
     function test_SavingsScore_BalanceBelow1000() public {
         vm.prank(alice);
-        savings.deposit(999e18);
+        savings.deposit(999e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -222,7 +222,7 @@ contract CreditScoreTest is Test {
 
     function test_SavingsScore_BalanceAt1000() public {
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -234,7 +234,7 @@ contract CreditScoreTest is Test {
 
     function test_SavingsScore_BalanceAt5000() public {
         vm.prank(alice);
-        savings.deposit(5_000e18);
+        savings.deposit(5_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -246,7 +246,7 @@ contract CreditScoreTest is Test {
 
     function test_SavingsScore_BalanceAbove10000() public {
         vm.prank(alice);
-        savings.deposit(10_000e18);
+        savings.deposit(10_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -262,7 +262,7 @@ contract CreditScoreTest is Test {
 
     function test_DepositScore_Below5000() public {
         vm.prank(alice);
-        savings.deposit(4_999e18);
+        savings.deposit(4_999e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -274,7 +274,7 @@ contract CreditScoreTest is Test {
 
     function test_DepositScore_At5000() public {
         vm.prank(alice);
-        savings.deposit(5_000e18);
+        savings.deposit(5_000e6);
 
         // Balance = 30
         // Deposit = 10
@@ -284,7 +284,7 @@ contract CreditScoreTest is Test {
 
     function test_DepositScore_At20000() public {
         vm.prank(alice);
-        savings.deposit(20_000e18);
+        savings.deposit(20_000e6);
 
         // Balance = 30
         // Deposit = 15
@@ -294,7 +294,7 @@ contract CreditScoreTest is Test {
 
     function test_DepositScore_At50000() public {
         vm.prank(alice);
-        savings.deposit(50_000e18);
+        savings.deposit(50_000e6);
 
         // Balance = 30
         // Deposit = 20
@@ -309,17 +309,17 @@ contract CreditScoreTest is Test {
 
     function test_DisciplineScore_100Percent() public {
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         assertEq(creditScore.getCreditProfile(alice).savingsScore, 45);
     }
 
     function test_DisciplineScore_90Percent() public {
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         vm.prank(alice);
-        savings.withdraw(100e18);
+        savings.withdraw(100e6);
 
         // Balance = 900
         // Balance score = 10
@@ -330,10 +330,10 @@ contract CreditScoreTest is Test {
 
     function test_DisciplineScore_75Percent() public {
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         vm.prank(alice);
-        savings.withdraw(250e18);
+        savings.withdraw(250e6);
 
         // Balance = 750
         // Balance score = 10
@@ -344,10 +344,10 @@ contract CreditScoreTest is Test {
 
     function test_DisciplineScore_50Percent() public {
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         vm.prank(alice);
-        savings.withdraw(500e18);
+        savings.withdraw(500e6);
 
         // Balance = 500
         // Balance score = 10
@@ -358,10 +358,10 @@ contract CreditScoreTest is Test {
 
     function test_DisciplineScore_25Percent() public {
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         vm.prank(alice);
-        savings.withdraw(750e18);
+        savings.withdraw(750e6);
 
         // Balance = 250
         // Balance score = 10
@@ -372,10 +372,10 @@ contract CreditScoreTest is Test {
 
     function test_DisciplineScore_Below25Percent() public {
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         vm.prank(alice);
-        savings.withdraw(751e18);
+        savings.withdraw(751e6);
 
         // Balance = 249
         // Balance score = 10
@@ -390,7 +390,7 @@ contract CreditScoreTest is Test {
 
     function test_SavingsScore_CannotExceed70() public {
         vm.prank(alice);
-        savings.deposit(100_000e18);
+        savings.deposit(100_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -411,7 +411,7 @@ contract CreditScoreTest is Test {
 
     function test_RepaymentScore_RemainsZeroWithSavings() public {
         vm.prank(alice);
-        savings.deposit(100_000e18);
+        savings.deposit(100_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -426,7 +426,7 @@ contract CreditScoreTest is Test {
         vm.warp(FIVE_YEARS);
 
         vm.prank(alice);
-        savings.deposit(50_000e18);
+        savings.deposit(50_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -443,7 +443,7 @@ contract CreditScoreTest is Test {
         vm.warp(FIVE_YEARS);
 
         vm.prank(alice);
-        savings.deposit(100_000e18);
+        savings.deposit(100_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -464,7 +464,7 @@ contract CreditScoreTest is Test {
         vm.warp(SIX_MONTHS);
 
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         // Membership = 10
         // Savings = 45
@@ -478,7 +478,7 @@ contract CreditScoreTest is Test {
         vm.warp(ONE_YEAR);
 
         vm.prank(alice);
-        savings.deposit(5_000e18);
+        savings.deposit(5_000e6);
 
         // Membership = 15
         // Savings = 60
@@ -492,7 +492,7 @@ contract CreditScoreTest is Test {
         vm.warp(TWO_YEARS);
 
         vm.prank(alice);
-        savings.deposit(20_000e18);
+        savings.deposit(20_000e6);
 
         // Membership = 25
         // Savings = 65
@@ -506,7 +506,7 @@ contract CreditScoreTest is Test {
         vm.warp(FIVE_YEARS);
 
         vm.prank(alice);
-        savings.deposit(50_000e18);
+        savings.deposit(50_000e6);
 
         assertEq(creditScore.getCreditScore(alice), 100);
 
@@ -521,7 +521,7 @@ contract CreditScoreTest is Test {
         vm.warp(TWO_YEARS);
 
         vm.prank(alice);
-        savings.deposit(20_000e18);
+        savings.deposit(20_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -542,7 +542,7 @@ contract CreditScoreTest is Test {
         vm.warp(ONE_YEAR);
 
         vm.prank(alice);
-        savings.deposit(10_000e18);
+        savings.deposit(10_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -553,7 +553,7 @@ contract CreditScoreTest is Test {
         vm.warp(ONE_YEAR);
 
         vm.prank(alice);
-        savings.deposit(10_000e18);
+        savings.deposit(10_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -615,7 +615,7 @@ contract CreditScoreTest is Test {
 
     function test_InactiveMemberCannotAccessCreditProfile() public {
         vm.prank(alice);
-        savings.deposit(10_000e18);
+        savings.deposit(10_000e6);
 
         vm.prank(owner);
         coopVault.deactivateMember(alice);
@@ -635,10 +635,10 @@ contract CreditScoreTest is Test {
 
     function test_MembersHaveIndependentCreditScores() public {
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         vm.prank(bob);
-        savings.deposit(50_000e18);
+        savings.deposit(50_000e6);
 
         uint256 aliceScore = creditScore.getCreditScore(alice);
 
@@ -707,9 +707,9 @@ contract CreditScoreTest is Test {
     function testFuzz_RepaymentScoreAlwaysZero() public {
         uint256[] memory amounts = new uint256[](3);
 
-        amounts[0] = 100e18;
-        amounts[1] = 1_000e18;
-        amounts[2] = 10_000e18;
+        amounts[0] = 100e6;
+        amounts[1] = 1_000e6;
+        amounts[2] = 10_000e6;
 
         for (uint256 i = 0; i < amounts.length; i++) {
             vm.prank(alice);
@@ -727,7 +727,7 @@ contract CreditScoreTest is Test {
         vm.warp(TWO_YEARS);
 
         vm.prank(alice);
-        savings.deposit(20_000e18);
+        savings.deposit(20_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 
@@ -740,7 +740,7 @@ contract CreditScoreTest is Test {
         vm.warp(FIVE_YEARS);
 
         vm.prank(alice);
-        savings.deposit(100_000e18);
+        savings.deposit(100_000e6);
 
         ICreditScore.CreditProfile memory profile = creditScore.getCreditProfile(alice);
 

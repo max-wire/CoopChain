@@ -30,7 +30,7 @@ contract SavingsTest is Test {
 
     bytes32 internal charlieNationalId = keccak256("charlie-national-id");
 
-    uint256 internal constant INITIAL_BALANCE = 1_000_000e18;
+    uint256 internal constant INITIAL_BALANCE = 1_000_000e6;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -114,7 +114,7 @@ contract SavingsTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_Deposit() public {
-        uint256 amount = 100e18;
+        uint256 amount = 100e6;
 
         uint256 aliceBalanceBefore = stablecoin.balanceOf(alice);
 
@@ -131,7 +131,7 @@ contract SavingsTest is Test {
     }
 
     function test_Deposit_UpdatesSavingsAccount() public {
-        uint256 amount = 250e18;
+        uint256 amount = 250e6;
 
         vm.prank(alice);
         savings.deposit(amount);
@@ -144,7 +144,7 @@ contract SavingsTest is Test {
     }
 
     function test_Deposit_EmitsEvent() public {
-        uint256 amount = 100e18;
+        uint256 amount = 100e6;
 
         vm.expectEmit(true, false, false, true);
 
@@ -155,8 +155,8 @@ contract SavingsTest is Test {
     }
 
     function test_Deposit_MultipleTimes() public {
-        uint256 firstDeposit = 100e18;
-        uint256 secondDeposit = 250e18;
+        uint256 firstDeposit = 100e6;
+        uint256 secondDeposit = 250e6;
 
         vm.startPrank(alice);
 
@@ -179,8 +179,8 @@ contract SavingsTest is Test {
     }
 
     function test_Deposit_DifferentMembers() public {
-        uint256 aliceAmount = 100e18;
-        uint256 bobAmount = 250e18;
+        uint256 aliceAmount = 100e6;
+        uint256 bobAmount = 250e6;
 
         vm.prank(alice);
         savings.deposit(aliceAmount);
@@ -207,7 +207,7 @@ contract SavingsTest is Test {
     }
 
     function test_RevertDeposit_NonMember() public {
-        uint256 amount = 100e18;
+        uint256 amount = 100e6;
 
         stablecoin.mint(nonMember, amount);
 
@@ -221,7 +221,7 @@ contract SavingsTest is Test {
     }
 
     function test_RevertDeposit_InactiveMember() public {
-        uint256 amount = 100e18;
+        uint256 amount = 100e6;
 
         vm.prank(owner);
         coopVault.deactivateMember(alice);
@@ -241,8 +241,8 @@ contract SavingsTest is Test {
     //////////////////////////////////////////////////////////////*/
 
     function test_Withdraw() public {
-        uint256 depositAmount = 500e18;
-        uint256 withdrawAmount = 200e18;
+        uint256 depositAmount = 500e6;
+        uint256 withdrawAmount = 200e6;
 
         vm.prank(alice);
         savings.deposit(depositAmount);
@@ -262,8 +262,8 @@ contract SavingsTest is Test {
     }
 
     function test_Withdraw_UpdatesSavingsAccount() public {
-        uint256 depositAmount = 500e18;
-        uint256 withdrawAmount = 200e18;
+        uint256 depositAmount = 500e6;
+        uint256 withdrawAmount = 200e6;
 
         vm.prank(alice);
         savings.deposit(depositAmount);
@@ -281,8 +281,8 @@ contract SavingsTest is Test {
     }
 
     function test_Withdraw_EmitsEvent() public {
-        uint256 depositAmount = 500e18;
-        uint256 withdrawAmount = 200e18;
+        uint256 depositAmount = 500e6;
+        uint256 withdrawAmount = 200e6;
         uint256 expectedBalance = depositAmount - withdrawAmount;
 
         vm.prank(alice);
@@ -297,7 +297,7 @@ contract SavingsTest is Test {
     }
 
     function test_Withdraw_EntireBalance() public {
-        uint256 amount = 500e18;
+        uint256 amount = 500e6;
 
         vm.prank(alice);
         savings.deposit(amount);
@@ -313,26 +313,26 @@ contract SavingsTest is Test {
     }
 
     function test_Withdraw_MultipleTimes() public {
-        uint256 depositAmount = 1_000e18;
+        uint256 depositAmount = 1_000e6;
 
         vm.prank(alice);
         savings.deposit(depositAmount);
 
         vm.prank(alice);
-        savings.withdraw(200e18);
+        savings.withdraw(200e6);
 
         vm.prank(alice);
-        savings.withdraw(300e18);
+        savings.withdraw(300e6);
 
         ISavings.SavingsAccount memory account = savings.getSavingsAccount(alice);
 
-        assertEq(account.balance, 500e18);
+        assertEq(account.balance, 500e6);
 
-        assertEq(account.totalDeposited, 1_000e18);
+        assertEq(account.totalDeposited, 1_000e6);
 
-        assertEq(account.totalWithdrawn, 500e18);
+        assertEq(account.totalWithdrawn, 500e6);
 
-        assertEq(savings.totalSavings(), 500e18);
+        assertEq(savings.totalSavings(), 500e6);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -350,28 +350,28 @@ contract SavingsTest is Test {
         vm.expectRevert(ISavings.NotMember.selector);
 
         vm.prank(nonMember);
-        savings.withdraw(1e18);
+        savings.withdraw(1e6);
     }
 
     function test_RevertWithdraw_InsufficientBalance() public {
         vm.prank(alice);
-        savings.deposit(100e18);
+        savings.deposit(100e6);
 
         vm.expectRevert(ISavings.InsufficientBalance.selector);
 
         vm.prank(alice);
-        savings.withdraw(101e18);
+        savings.withdraw(101e6);
     }
 
     function test_RevertWithdraw_EntirelyEmptyAccount() public {
         vm.expectRevert(ISavings.InsufficientBalance.selector);
 
         vm.prank(alice);
-        savings.withdraw(1e18);
+        savings.withdraw(1e6);
     }
 
     function test_Withdraw_AllowedForInactiveMember() public {
-        uint256 amount = 500e18;
+        uint256 amount = 500e6;
 
         vm.prank(alice);
         savings.deposit(amount);
@@ -397,13 +397,13 @@ contract SavingsTest is Test {
 
     function test_TotalSavingsEqualsSumOfBalances() public {
         vm.prank(alice);
-        savings.deposit(100e18);
+        savings.deposit(100e6);
 
         vm.prank(bob);
-        savings.deposit(250e18);
+        savings.deposit(250e6);
 
         vm.prank(charlie);
-        savings.deposit(400e18);
+        savings.deposit(400e6);
 
         uint256 expectedTotal = savings.balanceOf(alice) + savings.balanceOf(bob) + savings.balanceOf(charlie);
 
@@ -412,41 +412,41 @@ contract SavingsTest is Test {
 
     function test_TotalSavingsAfterWithdrawals() public {
         vm.prank(alice);
-        savings.deposit(500e18);
+        savings.deposit(500e6);
 
         vm.prank(bob);
-        savings.deposit(300e18);
+        savings.deposit(300e6);
 
         vm.prank(alice);
-        savings.withdraw(200e18);
+        savings.withdraw(200e6);
 
         vm.prank(bob);
-        savings.withdraw(100e18);
+        savings.withdraw(100e6);
 
         uint256 expectedTotal = savings.balanceOf(alice) + savings.balanceOf(bob);
 
         assertEq(savings.totalSavings(), expectedTotal);
 
-        assertEq(savings.totalSavings(), 500e18);
+        assertEq(savings.totalSavings(), 500e6);
     }
 
     function test_DepositThenWithdraw_PreservesHistory() public {
         vm.prank(alice);
-        savings.deposit(1_000e18);
+        savings.deposit(1_000e6);
 
         vm.prank(alice);
-        savings.withdraw(400e18);
+        savings.withdraw(400e6);
 
         vm.prank(alice);
-        savings.deposit(200e18);
+        savings.deposit(200e6);
 
         ISavings.SavingsAccount memory account = savings.getSavingsAccount(alice);
 
-        assertEq(account.balance, 800e18);
+        assertEq(account.balance, 800e6);
 
-        assertEq(account.totalDeposited, 1_200e18);
+        assertEq(account.totalDeposited, 1_200e6);
 
-        assertEq(account.totalWithdrawn, 400e18);
+        assertEq(account.totalWithdrawn, 400e6);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -455,34 +455,34 @@ contract SavingsTest is Test {
 
     function test_MembersHaveIndependentAccounts() public {
         vm.prank(alice);
-        savings.deposit(100e18);
+        savings.deposit(100e6);
 
         vm.prank(bob);
-        savings.deposit(500e18);
+        savings.deposit(500e6);
 
         vm.prank(alice);
-        savings.withdraw(50e18);
+        savings.withdraw(50e6);
 
-        assertEq(savings.balanceOf(alice), 50e18);
+        assertEq(savings.balanceOf(alice), 50e6);
 
-        assertEq(savings.balanceOf(bob), 500e18);
+        assertEq(savings.balanceOf(bob), 500e6);
 
-        assertEq(savings.totalSavings(), 550e18);
+        assertEq(savings.totalSavings(), 550e6);
     }
 
     function test_WithdrawDoesNotAffectOtherMember() public {
         vm.prank(alice);
-        savings.deposit(300e18);
+        savings.deposit(300e6);
 
         vm.prank(bob);
-        savings.deposit(700e18);
+        savings.deposit(700e6);
 
         vm.prank(alice);
-        savings.withdraw(100e18);
+        savings.withdraw(100e6);
 
-        assertEq(savings.balanceOf(alice), 200e18);
+        assertEq(savings.balanceOf(alice), 200e6);
 
-        assertEq(savings.balanceOf(bob), 700e18);
+        assertEq(savings.balanceOf(bob), 700e6);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -552,13 +552,13 @@ contract SavingsTest is Test {
 
     function test_TokenAccountingMatchesSavings() public {
         vm.prank(alice);
-        savings.deposit(100e18);
+        savings.deposit(100e6);
 
         vm.prank(bob);
-        savings.deposit(250e18);
+        savings.deposit(250e6);
 
         vm.prank(alice);
-        savings.withdraw(50e18);
+        savings.withdraw(50e6);
 
         uint256 contractBalance = stablecoin.balanceOf(address(savings));
 

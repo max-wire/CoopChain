@@ -4,6 +4,17 @@ pragma solidity ^0.8.24;
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IActuarialEngine} from "./interfaces/IActuarialEngine.sol";
 
+/**
+ * @title ActuarialEngine
+ * @author Maxwell Wire
+ * @notice Provides actuarial and financial mathematics calculations for CoopChain.
+ * @dev
+ * Monetary inputs and outputs use the native denomination of the underlying
+ * asset. For the current CoopChain deployment, this is 6-decimal USDC.
+ *
+ * Fixed-point mathematical calculations use 1e18 precision independently
+ * of the underlying asset's decimals.
+ */
 contract ActuarialEngine is IActuarialEngine {
     using Math for uint256;
 

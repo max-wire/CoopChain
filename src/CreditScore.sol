@@ -15,9 +15,13 @@ import {ICreditScore} from "./interfaces/ICreditScore.sol";
  * - Savings behaviour (70%)
  * - Repayment history: 0% (reserved for future versions)
  *
+ * Monetary thresholds are denominated in 6-decimal USDC units
+ * for the current Arc Testnet deployment.
+ *
  * The maximum credit score is 100 and is mapped to a corresponding
  * risk tier ranging from VeryLow to VeryHigh.
  */
+
 contract CreditScore is ICreditScore {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -48,15 +52,15 @@ contract CreditScore is ICreditScore {
     uint256 private constant TWO_YEARS = 730 days;
     uint256 private constant FIVE_YEARS = 1825 days;
 
-    // Savings balance thresholds
-    uint256 private constant BALANCE_SMALL = 1_000 ether;
-    uint256 private constant BALANCE_MEDIUM = 5_000 ether;
-    uint256 private constant BALANCE_LARGE = 10_000 ether;
+    // Savings balance thresholds — 6-decimal USDC
+    uint256 private constant BALANCE_SMALL = 1_000e6;
+    uint256 private constant BALANCE_MEDIUM = 5_000e6;
+    uint256 private constant BALANCE_LARGE = 10_000e6;
 
-    // Deposit thresholds
-    uint256 private constant LOW_DEPOSIT = 5_000 ether;
-    uint256 private constant MEDIUM_DEPOSIT = 20_000 ether;
-    uint256 private constant HIGH_DEPOSIT = 50_000 ether;
+    // Deposit thresholds — 6-decimal USDC
+    uint256 private constant LOW_DEPOSIT = 5_000e6;
+    uint256 private constant MEDIUM_DEPOSIT = 20_000e6;
+    uint256 private constant HIGH_DEPOSIT = 50_000e6;
 
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR

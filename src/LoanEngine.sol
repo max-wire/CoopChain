@@ -206,6 +206,10 @@ contract LoanEngine is ILoanEngine {
             revert LoanNotActive();
         }
 
+        if (block.timestamp < loan.nextDueDate) {
+            revert PaymentNotDue();
+        }
+
         if (amount == 0) {
             revert InvalidAmount();
         }
