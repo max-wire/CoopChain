@@ -10,3 +10,9 @@ docs/
 
 # Dotenv file
 .env
+
+# Node.js dependencies
+node_modules/
+
+# Node.js build output
+dis/
