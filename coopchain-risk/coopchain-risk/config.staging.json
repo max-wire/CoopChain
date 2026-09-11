@@ -1,0 +1,5 @@
+{
+  "schedule": "*/30 * * * * *",
+  "riskApiUrl": "https://developed-realize-posters-satisfactory.trycloudflare.com",
+  "memberWallet": "0xb1083cdfd6c05404d70432b3f61c9d5d1087f5ba"
+}
