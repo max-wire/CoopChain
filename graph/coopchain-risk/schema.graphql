@@ -1,0 +1,153 @@
+type Member @entity(immutable: false) {
+  id: ID!
+  memberId: BigInt!
+  wallet: Bytes!
+  joinedAt: BigInt!
+  active: Boolean!
+  savingsBalance: BigInt!
+  deposits: [SavingsTransaction!]! @derivedFrom(field: "member")
+  loans: [Loan!]! @derivedFrom(field: "member")
+}
+
+type SavingsTransaction @entity(immutable: false) {
+  id: ID!
+  member: Member!
+  user: Bytes!
+  amount: BigInt!
+  newBalance: BigInt!
+  type: String!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Loan @entity(immutable: false) {
+  id: ID!
+  loanId: BigInt!
+  member: Member!
+  borrower: Bytes!
+  principal: BigInt!
+  interestRateBps: BigInt!
+  duration: BigInt!
+  monthlyPayment: BigInt!
+  totalRepayment: BigInt!
+  amountRepaid: BigInt!
+  nextDueDate: BigInt!
+  status: String!
+  payments: [LoanPayment!]! @derivedFrom(field: "loan")
+  repayments: [LoanRepayment!]! @derivedFrom(field: "loan")
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+type LoanPayment @entity(immutable: false) {
+  id: ID!
+  loan: Loan!
+  loanId: BigInt!
+  dueDate: BigInt!
+  amount: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type LoanRepayment @entity(immutable: false) {
+  id: ID!
+  loan: Loan!
+  loanId: BigInt!
+  borrower: Bytes!
+  amount: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Investment @entity(immutable: false) {
+  id: ID!
+  investmentId: BigInt!
+  name: String!
+  symbol: String!
+  assetType: Int!
+  issuer: Bytes!
+  token: Bytes!
+  price: BigInt!
+  totalSupply: BigInt!
+  active: Boolean!
+  purchases: [InvestmentTransaction!]! @derivedFrom(field: "investment")
+  tokenTransfers: [InvestmentTokenTransfer!]! @derivedFrom(field: "investment")
+  tokenActivities: [InvestmentTokenActivity!]! @derivedFrom(field: "investment")
+}
+
+type InvestmentTransaction @entity(immutable: false) {
+  id: ID!
+  investment: Investment!
+  investor: Bytes!
+  usdcAmount: BigInt!
+  tokenAmount: BigInt!
+  type: String!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type PoolTransaction @entity(immutable: false) {
+  id: ID!
+  account: Bytes!
+  amount: BigInt!
+  type: String!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+# ------------------------------------------------------------
+# INVESTMENT TOKEN
+# ------------------------------------------------------------
+
+type InvestmentToken @entity(immutable: false) {
+  id: ID!
+  address: Bytes!
+  investment: Investment!
+  investmentId: BigInt!
+  issuer: Bytes!
+  maxSupply: BigInt!
+  minter: Bytes!
+  totalSupply: BigInt!
+  holders: [InvestmentTokenHolder!]! @derivedFrom(field: "token")
+  transfers: [InvestmentTokenTransfer!]! @derivedFrom(field: "token")
+  activities: [InvestmentTokenActivity!]! @derivedFrom(field: "token")
+}
+
+type InvestmentTokenHolder @entity(immutable: false) {
+  id: ID!
+  token: InvestmentToken!
+  account: Bytes!
+  balance: BigInt!
+  updatedAt: BigInt!
+}
+
+type InvestmentTokenTransfer @entity(immutable: true) {
+  id: ID!
+  token: InvestmentToken!
+  investment: Investment!
+  from: Bytes!
+  to: Bytes!
+  amount: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type InvestmentTokenActivity @entity(immutable: true) {
+  id: ID!
+  token: InvestmentToken!
+  investment: Investment!
+  account: Bytes!
+  amount: BigInt!
+  type: String!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type MinterUpdate @entity(immutable: true) {
+  id: ID!
+  token: InvestmentToken!
+  previousMinter: Bytes!
+  newMinter: Bytes!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}

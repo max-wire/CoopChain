@@ -1,0 +1,165 @@
+specVersion: 1.3.0
+schema:
+  file: schema.graphql
+dataSources:
+  - kind: ethereum
+    name: CoopVault
+    network: arc-testnet
+    source:
+      address: "0x04268b820aa15974a02ec86a4d78d9153861b2df"
+      abi: CoopVault
+      startBlock: 61032691
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Member
+      abis:
+        - name: CoopVault
+          file: CoopVault/CoopVault.json
+      eventHandlers:
+        - event: MemberRegistered(indexed uint256,indexed address,uint256)
+          handler: handleMemberRegistered
+        - event: MemberDeactivated(indexed uint256,indexed address)
+          handler: handleMemberDeactivated
+      file: CoopVault/CoopVault.wasm
+  - kind: ethereum
+    name: Savings
+    network: arc-testnet
+    source:
+      address: "0x4f389227d5f3f0d6e2bf75256e972fcdbbea8cdf"
+      abi: Savings
+      startBlock: 61032691
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Member
+        - SavingsTransaction
+      abis:
+        - name: Savings
+          file: Savings/Savings.json
+      eventHandlers:
+        - event: Deposit(indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,uint256,uint256)
+          handler: handleWithdraw
+      file: CoopVault/CoopVault.wasm
+  - kind: ethereum
+    name: LoanEngine
+    network: arc-testnet
+    source:
+      address: "0xb922a103aeb7688d8bceb1849b8d410ef90ff658"
+      abi: LoanEngine
+      startBlock: 61032691
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Member
+        - Loan
+        - LoanPayment
+        - LoanRepayment
+      abis:
+        - name: LoanEngine
+          file: LoanEngine/LoanEngine.json
+      eventHandlers:
+        - event: LoanCreated(indexed uint256,indexed
+            address,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleLoanCreated
+        - event: LoanPaymentDue(indexed uint256,uint256,uint256)
+          handler: handleLoanPaymentDue
+        - event: LoanRepaid(indexed uint256,indexed address,uint256)
+          handler: handleLoanRepaid
+        - event: LoanDefaulted(indexed uint256)
+          handler: handleLoanDefaulted
+        - event: LoanCancelled(indexed uint256)
+          handler: handleLoanCancelled
+      file: CoopVault/CoopVault.wasm
+  - kind: ethereum
+    name: InvestmentRegistry
+    network: arc-testnet
+    source:
+      address: "0xf4585823252784685e1905a886cbe021977db6c8"
+      abi: InvestmentRegistry
+      startBlock: 61048874
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Investment
+      abis:
+        - name: InvestmentRegistry
+          file: InvestmentRegistry/InvestmentRegistry.json
+        - name: InvestmentToken
+          file: InvestmentRegistry/InvestmentToken.json
+      eventHandlers:
+        - event: InvestmentCreated(indexed uint256,string,string,indexed uint8,indexed
+            address,address,uint256,uint256)
+          handler: handleInvestmentCreated
+        - event: InvestmentUpdated(indexed uint256,uint256,uint256,bool)
+          handler: handleInvestmentUpdated
+        - event: InvestmentDeactivated(indexed uint256)
+          handler: handleInvestmentDeactivated
+      file: CoopVault/CoopVault.wasm
+  - kind: ethereum
+    name: InvestmentPool
+    network: arc-testnet
+    source:
+      address: "0x837d77e0f3e6d8668f146d9801263b292aa12b63"
+      abi: InvestmentPool
+      startBlock: 61048874
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Investment
+        - InvestmentTransaction
+        - PoolTransaction
+      abis:
+        - name: InvestmentPool
+          file: InvestmentPool/InvestmentPool.json
+      eventHandlers:
+        - event: InvestmentPurchased(indexed address,indexed uint256,uint256,uint256)
+          handler: handleInvestmentPurchased
+        - event: InvestmentRedeemed(indexed address,indexed uint256,uint256,uint256)
+          handler: handleInvestmentRedeemed
+        - event: PoolFunded(indexed address,uint256)
+          handler: handlePoolFunded
+        - event: PoolWithdrawn(indexed address,uint256)
+          handler: handlePoolWithdrawn
+      file: CoopVault/CoopVault.wasm
+templates:
+  - kind: ethereum
+    name: InvestmentToken
+    network: arc-testnet
+    source:
+      abi: InvestmentToken
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - InvestmentToken
+        - InvestmentTokenHolder
+        - InvestmentTokenTransfer
+        - InvestmentTokenActivity
+        - MinterUpdate
+      abis:
+        - name: InvestmentToken
+          file: InvestmentToken/InvestmentToken.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleInvestmentTokenTransfer
+        - event: TokensMinted(indexed address,uint256)
+          handler: handleTokensMinted
+        - event: TokensBurned(indexed address,uint256)
+          handler: handleTokensBurned
+        - event: MinterUpdated(indexed address,indexed address)
+          handler: handleMinterUpdated
+      file: CoopVault/CoopVault.wasm
