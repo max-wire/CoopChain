@@ -8,8 +8,11 @@ const CREDIT_SCORE_ABI = [
   "function getRiskTier(address member) view returns (uint8)",
 ];
 
-const provider = new ethers.JsonRpcProvider(RPC_URL, 5042002, {
-  staticNetwork: true,
+// Arc Testnet — pin the network so ethers never attempts ENS lookups.
+const ARC_NETWORK = new ethers.Network("arc-testnet", 5042002);
+
+const provider = new ethers.JsonRpcProvider(RPC_URL, ARC_NETWORK, {
+  staticNetwork: ARC_NETWORK,
 });
 
 const creditScore = new ethers.Contract(
