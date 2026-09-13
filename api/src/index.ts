@@ -328,6 +328,11 @@ app.post("/api/loan/decision", async (req, res) => {
 
 const PORT = Number(process.env.PORT || 4000);
 
-app.listen(PORT, () => {
-  console.log(`CoopChain Risk API running on port ${PORT}`);
-});
+// Local development only — Vercel invokes the exported app directly.
+if (process.env.VERCEL !== "1") {
+  app.listen(PORT, () => {
+    console.log(`CoopChain Risk API running on port ${PORT}`);
+  });
+}
+
+export default app;

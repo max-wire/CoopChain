@@ -8,7 +8,9 @@ const CREDIT_SCORE_ABI = [
   "function getRiskTier(address member) view returns (uint8)",
 ];
 
-const provider = new ethers.JsonRpcProvider(RPC_URL);
+const provider = new ethers.JsonRpcProvider(RPC_URL, 5042002, {
+  staticNetwork: true,
+});
 
 const creditScore = new ethers.Contract(
   CREDIT_SCORE_ADDRESS,
