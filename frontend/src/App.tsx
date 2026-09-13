@@ -254,19 +254,6 @@ function money(value: MoneyValue) {
   })} USDC`;
 }
 
-function plainNumber(value: MoneyValue) {
-  const amount = numericValue(value);
-
-  if (amount === undefined) {
-    return "—";
-  }
-
-  return amount.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
-  });
-}
-
 /*
  * UPDATED:
  * Hedera token values may arrive from the API as raw 18-decimal
