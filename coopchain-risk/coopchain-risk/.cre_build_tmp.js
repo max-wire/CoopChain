@@ -19280,11 +19280,28 @@ var onConfidentialRiskCheck = (runtime, _triggerOutput) => {
   } else {
     riskTier = "LOW";
   }
-  runtime.log(`Confidential CoopChain risk evaluation: ${riskTier}`);
-  return {
+  const result = {
     riskTier,
     eligible
   };
+  runtime.log(`Confidential CoopChain risk evaluation: ${riskTier}, eligible=${eligible}`);
+  const callbackResponse = http.sendRequest(runtime, {
+    url: `${runtime.config.riskApiUrl}/api/risk/cre-result`,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: Buffer.from(JSON.stringify({
+      wallet: runtime.config.memberWallet,
+      riskTier: result.riskTier,
+      eligible: result.eligible
+    })).toString("base64")
+  }).result();
+  if (!ok(callbackResponse)) {
+    throw new Error(`CRE result callback failed with status ${callbackResponse.statusCode}`);
+  }
+  runtime.log("Confidential CoopChain risk result persisted successfully");
+  return result;
 };
 var initWorkflow = (config) => {
   const cron = new CronCapability;

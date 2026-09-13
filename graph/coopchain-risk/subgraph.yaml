@@ -4,7 +4,6 @@ schema:
   file: ./schema.graphql
 
 dataSources:
-
   # ============================================================
   # COOP VAULT
   # ============================================================
@@ -37,7 +36,6 @@ dataSources:
           handler: handleMemberDeactivated
 
       file: ./src/mapping.ts
-
 
   # ============================================================
   # SAVINGS
@@ -72,7 +70,6 @@ dataSources:
           handler: handleWithdraw
 
       file: ./src/mapping.ts
-
 
   # ============================================================
   # LOAN ENGINE
@@ -119,7 +116,6 @@ dataSources:
 
       file: ./src/mapping.ts
 
-
   # ============================================================
   # INVESTMENT REGISTRY
   # ============================================================
@@ -145,7 +141,7 @@ dataSources:
           file: ./abis/InvestmentRegistry.json
 
         - name: InvestmentToken
-          file: ./abis/InvestmentToken.json  
+          file: ./abis/InvestmentToken.json
 
       eventHandlers:
         - event: InvestmentCreated(indexed uint256,string,string,indexed uint8,indexed address,address,uint256,uint256)
@@ -158,7 +154,6 @@ dataSources:
           handler: handleInvestmentDeactivated
 
       file: ./src/mapping.ts
-
 
   # ============================================================
   # INVESTMENT POOL
@@ -201,13 +196,11 @@ dataSources:
 
       file: ./src/mapping.ts
 
-
 # ==============================================================
 # DYNAMIC INVESTMENT TOKEN TEMPLATE
 # ==============================================================
 
 templates:
-
   - kind: ethereum
     name: InvestmentToken
     network: arc-testnet
@@ -232,7 +225,6 @@ templates:
           file: ./abis/InvestmentToken.json
 
       eventHandlers:
-
         # OpenZeppelin ERC20 event
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleInvestmentTokenTransfer

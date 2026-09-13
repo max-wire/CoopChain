@@ -58,7 +58,6 @@ import {
 
 import { InvestmentToken as InvestmentTokenContract } from "../generated/templates/InvestmentToken/InvestmentToken";
 
-
 // ============================================================
 // HELPERS
 // ============================================================
@@ -66,7 +65,6 @@ import { InvestmentToken as InvestmentTokenContract } from "../generated/templat
 function getMemberId(wallet: Bytes): string {
   return wallet.toHexString().toLowerCase();
 }
-
 
 function getOrCreateMember(wallet: Bytes): Member {
   let id = getMemberId(wallet);
@@ -88,26 +86,15 @@ function getOrCreateMember(wallet: Bytes): Member {
   return member;
 }
 
-
-function getEventId(
-  transactionHash: Bytes,
-  logIndex: BigInt
-): string {
-  return (
-    transactionHash.toHexString() +
-    "-" +
-    logIndex.toString()
-  );
+function getEventId(transactionHash: Bytes, logIndex: BigInt): string {
+  return transactionHash.toHexString() + "-" + logIndex.toString();
 }
-
 
 // ============================================================
 // MEMBERS
 // ============================================================
 
-export function handleMemberRegistered(
-  event: MemberRegisteredEvent
-): void {
+export function handleMemberRegistered(event: MemberRegisteredEvent): void {
   let member = getOrCreateMember(event.params.wallet);
 
   member.memberId = event.params.memberId;
@@ -118,13 +105,8 @@ export function handleMemberRegistered(
   member.save();
 }
 
-
-export function handleMemberDeactivated(
-  event: MemberDeactivatedEvent
-): void {
-  let member = Member.load(
-    getMemberId(event.params.wallet)
-  );
+export function handleMemberDeactivated(event: MemberDeactivatedEvent): void {
+  let member = Member.load(getMemberId(event.params.wallet));
 
   if (member == null) {
     return;
@@ -134,23 +116,17 @@ export function handleMemberDeactivated(
   member.save();
 }
 
-
 // ============================================================
 // SAVINGS
 // ============================================================
 
-export function handleDeposit(
-  event: DepositEvent
-): void {
+export function handleDeposit(event: DepositEvent): void {
   let member = getOrCreateMember(event.params.user);
 
   member.savingsBalance = event.params.newBalance;
   member.save();
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
   let transaction = new SavingsTransaction(id);
 
@@ -165,19 +141,13 @@ export function handleDeposit(
   transaction.save();
 }
 
-
-export function handleWithdraw(
-  event: WithdrawEvent
-): void {
+export function handleWithdraw(event: WithdrawEvent): void {
   let member = getOrCreateMember(event.params.user);
 
   member.savingsBalance = event.params.newBalance;
   member.save();
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
   let transaction = new SavingsTransaction(id);
 
@@ -192,17 +162,12 @@ export function handleWithdraw(
   transaction.save();
 }
 
-
 // ============================================================
 // LOANS
 // ============================================================
 
-export function handleLoanCreated(
-  event: LoanCreatedEvent
-): void {
-  let member = getOrCreateMember(
-    event.params.borrower
-  );
+export function handleLoanCreated(event: LoanCreatedEvent): void {
+  let member = getOrCreateMember(event.params.borrower);
 
   let id = event.params.loanId.toString();
 
@@ -216,41 +181,27 @@ export function handleLoanCreated(
   loan.member = member.id;
   loan.borrower = event.params.borrower;
   loan.principal = event.params.principal;
-  loan.interestRateBps =
-    event.params.interestRateBps;
+  loan.interestRateBps = event.params.interestRateBps;
   loan.duration = event.params.duration;
-  loan.monthlyPayment =
-    event.params.monthlyPayment;
-  loan.totalRepayment =
-    event.params.totalRepayment;
+  loan.monthlyPayment = event.params.monthlyPayment;
+  loan.totalRepayment = event.params.totalRepayment;
   loan.amountRepaid = BigInt.zero();
-  loan.nextDueDate =
-    event.params.nextDueDate;
+  loan.nextDueDate = event.params.nextDueDate;
   loan.status = "ACTIVE";
-  loan.createdAt =
-    event.block.timestamp;
-  loan.updatedAt =
-    event.block.timestamp;
+  loan.createdAt = event.block.timestamp;
+  loan.updatedAt = event.block.timestamp;
 
   loan.save();
 }
 
-
-export function handleLoanPaymentDue(
-  event: LoanPaymentDueEvent
-): void {
-  let loan = Loan.load(
-    event.params.loanId.toString()
-  );
+export function handleLoanPaymentDue(event: LoanPaymentDueEvent): void {
+  let loan = Loan.load(event.params.loanId.toString());
 
   if (loan == null) {
     return;
   }
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
   let payment = new LoanPayment(id);
 
@@ -258,249 +209,169 @@ export function handleLoanPaymentDue(
   payment.loanId = event.params.loanId;
   payment.dueDate = event.params.dueDate;
   payment.amount = event.params.amount;
-  payment.timestamp =
-    event.block.timestamp;
-  payment.transactionHash =
-    event.transaction.hash;
+  payment.timestamp = event.block.timestamp;
+  payment.transactionHash = event.transaction.hash;
 
   payment.save();
 
-  loan.updatedAt =
-    event.block.timestamp;
+  loan.updatedAt = event.block.timestamp;
 
   loan.save();
 }
 
-
-export function handleLoanRepaid(
-  event: LoanRepaidEvent
-): void {
-  let loan = Loan.load(
-    event.params.loanId.toString()
-  );
+export function handleLoanRepaid(event: LoanRepaidEvent): void {
+  let loan = Loan.load(event.params.loanId.toString());
 
   if (loan == null) {
     return;
   }
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
   let repayment = new LoanRepayment(id);
 
   repayment.loan = loan.id;
   repayment.loanId = event.params.loanId;
-  repayment.borrower =
-    event.params.borrower;
-  repayment.amount =
-    event.params.amount;
-  repayment.timestamp =
-    event.block.timestamp;
-  repayment.transactionHash =
-    event.transaction.hash;
+  repayment.borrower = event.params.borrower;
+  repayment.amount = event.params.amount;
+  repayment.timestamp = event.block.timestamp;
+  repayment.transactionHash = event.transaction.hash;
 
   repayment.save();
 
-  loan.amountRepaid =
-    loan.amountRepaid.plus(
-      event.params.amount
-    );
+  loan.amountRepaid = loan.amountRepaid.plus(event.params.amount);
 
-  if (
-    loan.amountRepaid.ge(
-      loan.totalRepayment
-    )
-  ) {
+  if (loan.amountRepaid.ge(loan.totalRepayment)) {
     loan.status = "REPAID";
   } else {
     loan.status = "ACTIVE";
   }
 
-  loan.updatedAt =
-    event.block.timestamp;
+  loan.updatedAt = event.block.timestamp;
 
   loan.save();
 }
 
-
-export function handleLoanDefaulted(
-  event: LoanDefaultedEvent
-): void {
-  let loan = Loan.load(
-    event.params.loanId.toString()
-  );
+export function handleLoanDefaulted(event: LoanDefaultedEvent): void {
+  let loan = Loan.load(event.params.loanId.toString());
 
   if (loan == null) {
     return;
   }
 
   loan.status = "DEFAULTED";
-  loan.updatedAt =
-    event.block.timestamp;
+  loan.updatedAt = event.block.timestamp;
 
   loan.save();
 }
 
-
-export function handleLoanCancelled(
-  event: LoanCancelledEvent
-): void {
-  let loan = Loan.load(
-    event.params.loanId.toString()
-  );
+export function handleLoanCancelled(event: LoanCancelledEvent): void {
+  let loan = Loan.load(event.params.loanId.toString());
 
   if (loan == null) {
     return;
   }
 
   loan.status = "CANCELLED";
-  loan.updatedAt =
-    event.block.timestamp;
+  loan.updatedAt = event.block.timestamp;
 
   loan.save();
 }
-
 
 // ============================================================
 // INVESTMENTS
 // ============================================================
 
-export function handleInvestmentCreated(
-  event: InvestmentCreatedEvent
-): void {
-  let id =
-    event.params.investmentId.toString();
+export function handleInvestmentCreated(event: InvestmentCreatedEvent): void {
+  let id = event.params.investmentId.toString();
 
   let investment = new Investment(id);
 
-  investment.investmentId =
-    event.params.investmentId;
+  investment.investmentId = event.params.investmentId;
 
-  investment.name =
-    event.params.name;
+  investment.name = event.params.name;
 
-  investment.symbol =
-    event.params.symbol;
+  investment.symbol = event.params.symbol;
 
-  investment.assetType =
-    event.params.assetType;
+  investment.assetType = event.params.assetType;
 
-  investment.issuer =
-    event.params.issuer;
+  investment.issuer = event.params.issuer;
 
-  investment.token =
-    event.params.token;
+  investment.token = event.params.token;
 
-  investment.price =
-    event.params.price;
+  investment.price = event.params.price;
 
-  investment.totalSupply =
-    event.params.totalSupply;
+  investment.totalSupply = event.params.totalSupply;
 
   investment.active = true;
 
   investment.save();
 
-
   // ----------------------------------------------------------
   // Start indexing this investment's token.
   // ----------------------------------------------------------
 
-  InvestmentTokenTemplate.create(
-    event.params.token
-  );
-
+  InvestmentTokenTemplate.create(event.params.token);
 
   // ----------------------------------------------------------
   // Create token metadata entity.
   // ----------------------------------------------------------
 
-  let tokenAddress =
-    event.params.token;
+  let tokenAddress = event.params.token;
 
-  let token =
-    InvestmentTokenContract.bind(
-      tokenAddress
-    );
+  let token = InvestmentTokenContract.bind(tokenAddress);
 
-  let tokenEntity =
-    new InvestmentToken(
-      tokenAddress.toHexString()
-    );
+  let tokenEntity = new InvestmentToken(tokenAddress.toHexString());
 
-  tokenEntity.address =
-    tokenAddress;
+  tokenEntity.address = tokenAddress;
 
-  tokenEntity.investment =
-    investment.id;
+  tokenEntity.investment = investment.id;
 
-  tokenEntity.investmentId =
-    event.params.investmentId;
+  tokenEntity.investmentId = event.params.investmentId;
 
-  tokenEntity.issuer =
-    event.params.issuer;
+  tokenEntity.issuer = event.params.issuer;
 
-  let maxSupplyResult =
-    token.try_maxSupply();
+  let maxSupplyResult = token.try_maxSupply();
 
   if (!maxSupplyResult.reverted) {
-    tokenEntity.maxSupply =
-      maxSupplyResult.value;
+    tokenEntity.maxSupply = maxSupplyResult.value;
   } else {
-    tokenEntity.maxSupply =
-      event.params.totalSupply;
+    tokenEntity.maxSupply = event.params.totalSupply;
   }
 
-  let minterResult =
-    token.try_minter();
+  let minterResult = token.try_minter();
 
   if (!minterResult.reverted) {
-    tokenEntity.minter =
-      minterResult.value;
+    tokenEntity.minter = minterResult.value;
   } else {
-    tokenEntity.minter =
-      event.params.issuer;
+    tokenEntity.minter = event.params.issuer;
   }
 
-  tokenEntity.totalSupply =
-    BigInt.zero();
+  tokenEntity.totalSupply = BigInt.zero();
 
   tokenEntity.save();
 }
 
-
-export function handleInvestmentUpdated(
-  event: InvestmentUpdatedEvent
-): void {
-  let investment = Investment.load(
-    event.params.investmentId.toString()
-  );
+export function handleInvestmentUpdated(event: InvestmentUpdatedEvent): void {
+  let investment = Investment.load(event.params.investmentId.toString());
 
   if (investment == null) {
     return;
   }
 
-  investment.price =
-    event.params.price;
+  investment.price = event.params.price;
 
-  investment.totalSupply =
-    event.params.totalSupply;
+  investment.totalSupply = event.params.totalSupply;
 
-  investment.active =
-    event.params.active;
+  investment.active = event.params.active;
 
   investment.save();
 }
 
-
 export function handleInvestmentDeactivated(
-  event: InvestmentDeactivatedEvent
+  event: InvestmentDeactivatedEvent,
 ): void {
-  let investment = Investment.load(
-    event.params.investmentId.toString()
-  );
+  let investment = Investment.load(event.params.investmentId.toString());
 
   if (investment == null) {
     return;
@@ -511,169 +382,113 @@ export function handleInvestmentDeactivated(
   investment.save();
 }
 
-
 // ============================================================
 // INVESTMENT POOL
 // ============================================================
 
 export function handleInvestmentPurchased(
-  event: InvestmentPurchasedEvent
+  event: InvestmentPurchasedEvent,
 ): void {
-  let investment = Investment.load(
-    event.params.investmentId.toString()
-  );
+  let investment = Investment.load(event.params.investmentId.toString());
 
   if (investment == null) {
     return;
   }
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
-  let transaction =
-    new InvestmentTransaction(id);
+  let transaction = new InvestmentTransaction(id);
 
-  transaction.investment =
-    investment.id;
+  transaction.investment = investment.id;
 
-  transaction.investor =
-    event.params.investor;
+  transaction.investor = event.params.investor;
 
-  transaction.usdcAmount =
-    event.params.usdcAmount;
+  transaction.usdcAmount = event.params.usdcAmount;
 
-  transaction.tokenAmount =
-    event.params.tokenAmount;
+  transaction.tokenAmount = event.params.tokenAmount;
 
-  transaction.type =
-    "PURCHASE";
+  transaction.type = "PURCHASE";
 
-  transaction.timestamp =
-    event.block.timestamp;
+  transaction.timestamp = event.block.timestamp;
 
-  transaction.transactionHash =
-    event.transaction.hash;
+  transaction.transactionHash = event.transaction.hash;
 
   transaction.save();
 }
 
-
-export function handleInvestmentRedeemed(
-  event: InvestmentRedeemedEvent
-): void {
-  let investment = Investment.load(
-    event.params.investmentId.toString()
-  );
+export function handleInvestmentRedeemed(event: InvestmentRedeemedEvent): void {
+  let investment = Investment.load(event.params.investmentId.toString());
 
   if (investment == null) {
     return;
   }
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
-  let transaction =
-    new InvestmentTransaction(id);
+  let transaction = new InvestmentTransaction(id);
 
-  transaction.investment =
-    investment.id;
+  transaction.investment = investment.id;
 
-  transaction.investor =
-    event.params.investor;
+  transaction.investor = event.params.investor;
 
-  transaction.usdcAmount =
-    event.params.usdcAmount;
+  transaction.usdcAmount = event.params.usdcAmount;
 
-  transaction.tokenAmount =
-    event.params.tokenAmount;
+  transaction.tokenAmount = event.params.tokenAmount;
 
-  transaction.type =
-    "REDEEM";
+  transaction.type = "REDEEM";
 
-  transaction.timestamp =
-    event.block.timestamp;
+  transaction.timestamp = event.block.timestamp;
 
-  transaction.transactionHash =
-    event.transaction.hash;
+  transaction.transactionHash = event.transaction.hash;
 
   transaction.save();
 }
-
 
 // ============================================================
 // POOL
 // ============================================================
 
-export function handlePoolFunded(
-  event: PoolFundedEvent
-): void {
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+export function handlePoolFunded(event: PoolFundedEvent): void {
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
-  let transaction =
-    new PoolTransaction(id);
+  let transaction = new PoolTransaction(id);
 
-  transaction.account =
-    event.params.funder;
+  transaction.account = event.params.funder;
 
-  transaction.amount =
-    event.params.amount;
+  transaction.amount = event.params.amount;
 
   transaction.type = "FUND";
 
-  transaction.timestamp =
-    event.block.timestamp;
+  transaction.timestamp = event.block.timestamp;
 
-  transaction.transactionHash =
-    event.transaction.hash;
+  transaction.transactionHash = event.transaction.hash;
 
   transaction.save();
 }
 
+export function handlePoolWithdrawn(event: PoolWithdrawnEvent): void {
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
-export function handlePoolWithdrawn(
-  event: PoolWithdrawnEvent
-): void {
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let transaction = new PoolTransaction(id);
 
-  let transaction =
-    new PoolTransaction(id);
+  transaction.account = event.params.recipient;
 
-  transaction.account =
-    event.params.recipient;
-
-  transaction.amount =
-    event.params.amount;
+  transaction.amount = event.params.amount;
 
   transaction.type = "WITHDRAW";
 
-  transaction.timestamp =
-    event.block.timestamp;
+  transaction.timestamp = event.block.timestamp;
 
-  transaction.transactionHash =
-    event.transaction.hash;
+  transaction.transactionHash = event.transaction.hash;
 
   transaction.save();
 }
-
 
 // ============================================================
 // INVESTMENT TOKEN
 // ============================================================
 
-function getTokenHolderId(
-  token: Bytes,
-  account: Bytes
-): string {
+function getTokenHolderId(token: Bytes, account: Bytes): string {
   return (
     token.toHexString().toLowerCase() +
     "-" +
@@ -681,31 +496,20 @@ function getTokenHolderId(
   );
 }
 
-
-function getInvestmentToken(
-  tokenAddress: Bytes
-): InvestmentToken | null {
-  return InvestmentToken.load(
-    tokenAddress.toHexString()
-  );
+function getInvestmentToken(tokenAddress: Bytes): InvestmentToken | null {
+  return InvestmentToken.load(tokenAddress.toHexString());
 }
-
 
 function getOrCreateTokenHolder(
   token: InvestmentToken,
-  account: Bytes
+  account: Bytes,
 ): InvestmentTokenHolder {
-  let id = getTokenHolderId(
-    token.address,
-    account
-  );
+  let id = getTokenHolderId(token.address, account);
 
-  let holder =
-    InvestmentTokenHolder.load(id);
+  let holder = InvestmentTokenHolder.load(id);
 
   if (holder == null) {
-    holder =
-      new InvestmentTokenHolder(id);
+    holder = new InvestmentTokenHolder(id);
 
     holder.token = token.id;
     holder.account = account;
@@ -716,28 +520,18 @@ function getOrCreateTokenHolder(
   return holder;
 }
 
-
-export function handleInvestmentTokenTransfer(
-  event: TransferEvent
-): void {
-  let token =
-    getInvestmentToken(
-      event.address
-    );
+export function handleInvestmentTokenTransfer(event: TransferEvent): void {
+  let token = getInvestmentToken(event.address);
 
   if (token == null) {
     return;
   }
 
-  let investment =
-    Investment.load(
-      token.investmentId.toString()
-    );
+  let investment = Investment.load(token.investmentId.toString());
 
   if (investment == null) {
     return;
   }
-
 
   // ----------------------------------------------------------
   // Update sender balance.
@@ -748,36 +542,20 @@ export function handleInvestmentTokenTransfer(
 
   if (
     event.params.from !=
-    Bytes.fromHexString(
-      "0x0000000000000000000000000000000000000000"
-    )
+    Bytes.fromHexString("0x0000000000000000000000000000000000000000")
   ) {
-    let sender =
-      getOrCreateTokenHolder(
-        token,
-        event.params.from
-      );
+    let sender = getOrCreateTokenHolder(token, event.params.from);
 
-    if (
-      sender.balance.ge(
-        event.params.value
-      )
-    ) {
-      sender.balance =
-        sender.balance.minus(
-          event.params.value
-        );
+    if (sender.balance.ge(event.params.value)) {
+      sender.balance = sender.balance.minus(event.params.value);
     } else {
-      sender.balance =
-        BigInt.zero();
+      sender.balance = BigInt.zero();
     }
 
-    sender.updatedAt =
-      event.block.timestamp;
+    sender.updatedAt = event.block.timestamp;
 
     sender.save();
   }
-
 
   // ----------------------------------------------------------
   // Update receiver balance.
@@ -788,27 +566,16 @@ export function handleInvestmentTokenTransfer(
 
   if (
     event.params.to !=
-    Bytes.fromHexString(
-      "0x0000000000000000000000000000000000000000"
-    )
+    Bytes.fromHexString("0x0000000000000000000000000000000000000000")
   ) {
-    let receiver =
-      getOrCreateTokenHolder(
-        token,
-        event.params.to
-      );
+    let receiver = getOrCreateTokenHolder(token, event.params.to);
 
-    receiver.balance =
-      receiver.balance.plus(
-        event.params.value
-      );
+    receiver.balance = receiver.balance.plus(event.params.value);
 
-    receiver.updatedAt =
-      event.block.timestamp;
+    receiver.updatedAt = event.block.timestamp;
 
     receiver.save();
   }
-
 
   // ----------------------------------------------------------
   // Update total supply.
@@ -816,233 +583,151 @@ export function handleInvestmentTokenTransfer(
 
   if (
     event.params.from ==
-    Bytes.fromHexString(
-      "0x0000000000000000000000000000000000000000"
-    )
+    Bytes.fromHexString("0x0000000000000000000000000000000000000000")
   ) {
-    token.totalSupply =
-      token.totalSupply.plus(
-        event.params.value
-      );
+    token.totalSupply = token.totalSupply.plus(event.params.value);
   }
 
   if (
     event.params.to ==
-    Bytes.fromHexString(
-      "0x0000000000000000000000000000000000000000"
-    )
+    Bytes.fromHexString("0x0000000000000000000000000000000000000000")
   ) {
-    if (
-      token.totalSupply.ge(
-        event.params.value
-      )
-    ) {
-      token.totalSupply =
-        token.totalSupply.minus(
-          event.params.value
-        );
+    if (token.totalSupply.ge(event.params.value)) {
+      token.totalSupply = token.totalSupply.minus(event.params.value);
     }
   }
 
   token.save();
 
-
   // ----------------------------------------------------------
   // Store transfer.
   // ----------------------------------------------------------
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
-  let transfer =
-    new InvestmentTokenTransfer(id);
+  let transfer = new InvestmentTokenTransfer(id);
 
-  transfer.token =
-    token.id;
+  transfer.token = token.id;
 
-  transfer.investment =
-    investment.id;
+  transfer.investment = investment.id;
 
-  transfer.from =
-    event.params.from;
+  transfer.from = event.params.from;
 
-  transfer.to =
-    event.params.to;
+  transfer.to = event.params.to;
 
-  transfer.amount =
-    event.params.value;
+  transfer.amount = event.params.value;
 
-  transfer.timestamp =
-    event.block.timestamp;
+  transfer.timestamp = event.block.timestamp;
 
-  transfer.transactionHash =
-    event.transaction.hash;
+  transfer.transactionHash = event.transaction.hash;
 
   transfer.save();
 }
-
 
 // ============================================================
 // TOKEN MINT
 // ============================================================
 
-export function handleTokensMinted(
-  event: TokensMintedEvent
-): void {
-  let token =
-    getInvestmentToken(
-      event.address
-    );
+export function handleTokensMinted(event: TokensMintedEvent): void {
+  let token = getInvestmentToken(event.address);
 
   if (token == null) {
     return;
   }
 
-  let investment =
-    Investment.load(
-      token.investmentId.toString()
-    );
+  let investment = Investment.load(token.investmentId.toString());
 
   if (investment == null) {
     return;
   }
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
-  let activity =
-    new InvestmentTokenActivity(id);
+  let activity = new InvestmentTokenActivity(id);
 
-  activity.token =
-    token.id;
+  activity.token = token.id;
 
-  activity.investment =
-    investment.id;
+  activity.investment = investment.id;
 
-  activity.account =
-    event.params.account;
+  activity.account = event.params.account;
 
-  activity.amount =
-    event.params.amount;
+  activity.amount = event.params.amount;
 
-  activity.type =
-    "MINT";
+  activity.type = "MINT";
 
-  activity.timestamp =
-    event.block.timestamp;
+  activity.timestamp = event.block.timestamp;
 
-  activity.transactionHash =
-    event.transaction.hash;
+  activity.transactionHash = event.transaction.hash;
 
   activity.save();
 }
-
 
 // ============================================================
 // TOKEN BURN
 // ============================================================
 
-export function handleTokensBurned(
-  event: TokensBurnedEvent
-): void {
-  let token =
-    getInvestmentToken(
-      event.address
-    );
+export function handleTokensBurned(event: TokensBurnedEvent): void {
+  let token = getInvestmentToken(event.address);
 
   if (token == null) {
     return;
   }
 
-  let investment =
-    Investment.load(
-      token.investmentId.toString()
-    );
+  let investment = Investment.load(token.investmentId.toString());
 
   if (investment == null) {
     return;
   }
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
-  let activity =
-    new InvestmentTokenActivity(id);
+  let activity = new InvestmentTokenActivity(id);
 
-  activity.token =
-    token.id;
+  activity.token = token.id;
 
-  activity.investment =
-    investment.id;
+  activity.investment = investment.id;
 
-  activity.account =
-    event.params.account;
+  activity.account = event.params.account;
 
-  activity.amount =
-    event.params.amount;
+  activity.amount = event.params.amount;
 
-  activity.type =
-    "BURN";
+  activity.type = "BURN";
 
-  activity.timestamp =
-    event.block.timestamp;
+  activity.timestamp = event.block.timestamp;
 
-  activity.transactionHash =
-    event.transaction.hash;
+  activity.transactionHash = event.transaction.hash;
 
   activity.save();
 }
-
 
 // ============================================================
 // MINTER UPDATE
 // ============================================================
 
-export function handleMinterUpdated(
-  event: MinterUpdatedEvent
-): void {
-  let token =
-    getInvestmentToken(
-      event.address
-    );
+export function handleMinterUpdated(event: MinterUpdatedEvent): void {
+  let token = getInvestmentToken(event.address);
 
   if (token == null) {
     return;
   }
 
-  token.minter =
-    event.params.newMinter;
+  token.minter = event.params.newMinter;
 
   token.save();
 
-  let id = getEventId(
-    event.transaction.hash,
-    event.logIndex
-  );
+  let id = getEventId(event.transaction.hash, event.logIndex);
 
-  let update =
-    new MinterUpdate(id);
+  let update = new MinterUpdate(id);
 
-  update.token =
-    token.id;
+  update.token = token.id;
 
-  update.previousMinter =
-    event.params.previousMinter;
+  update.previousMinter = event.params.previousMinter;
 
-  update.newMinter =
-    event.params.newMinter;
+  update.newMinter = event.params.newMinter;
 
-  update.timestamp =
-    event.block.timestamp;
+  update.timestamp = event.block.timestamp;
 
-  update.transactionHash =
-    event.transaction.hash;
+  update.transactionHash = event.transaction.hash;
 
   update.save();
 }

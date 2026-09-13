@@ -12,7 +12,7 @@ export function formatUsdc(value: string | bigint) {
 export function formatToken(
   value: string | bigint,
   decimals: number,
-  symbol: string
+  symbol: string,
 ) {
   return {
     amount: formatUnits(value, decimals),

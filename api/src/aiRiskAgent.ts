@@ -8,8 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const OPENAI_MODEL =
-  process.env.OPENAI_MODEL || "gpt-5.6-luna";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna";
 
 export interface RiskDriver {
   factor: string;
@@ -71,16 +70,14 @@ function determineRiskLevel(
   creditScore: number,
   financialRiskScore: number,
   investmentRiskScore: number,
-  decision: string
+  decision: string,
 ): "LOW" | "MEDIUM" | "HIGH" {
   if (decision === "DECLINE") {
     return "HIGH";
   }
 
   const overallScore =
-    creditScore * 0.4 +
-    financialRiskScore * 0.4 +
-    investmentRiskScore * 0.2;
+    creditScore * 0.4 + financialRiskScore * 0.4 + investmentRiskScore * 0.2;
 
   if (overallScore >= 75) {
     return "LOW";
@@ -96,7 +93,7 @@ function determineRiskLevel(
 function buildRiskDrivers(
   memberRisk: Awaited<ReturnType<typeof calculateMemberRisk>>,
   loanDecision: Awaited<ReturnType<typeof evaluateLoanDecision>>,
-  investmentRisk: Awaited<ReturnType<typeof calculateInvestmentRisk>>
+  investmentRisk: Awaited<ReturnType<typeof calculateInvestmentRisk>>,
 ): RiskDriver[] {
   const drivers: RiskDriver[] = [];
 
@@ -132,8 +129,7 @@ function buildRiskDrivers(
       drivers.push({
         factor: "Repayment history",
         severity: "MEDIUM",
-        evidence:
-          `Current repayment rate is ${memberRisk.repaymentRate}%.`,
+        evidence: `Current repayment rate is ${memberRisk.repaymentRate}%.`,
       });
     }
   }
@@ -142,15 +138,13 @@ function buildRiskDrivers(
     drivers.push({
       factor: "Credit score",
       severity: "HIGH",
-      evidence:
-        `Credit score is ${memberRisk.creditScore}, below the lending threshold.`,
+      evidence: `Credit score is ${memberRisk.creditScore}, below the lending threshold.`,
     });
   } else if (memberRisk.creditScore < 75) {
     drivers.push({
       factor: "Credit score",
       severity: "MEDIUM",
-      evidence:
-        `Credit score is ${memberRisk.creditScore}, below the automatic approval threshold.`,
+      evidence: `Credit score is ${memberRisk.creditScore}, below the automatic approval threshold.`,
     });
   }
 
@@ -158,8 +152,7 @@ function buildRiskDrivers(
     drivers.push({
       factor: "Multiple active loans",
       severity: "MEDIUM",
-      evidence:
-        `Member currently has ${memberRisk.activeLoans} active loans.`,
+      evidence: `Member currently has ${memberRisk.activeLoans} active loans.`,
     });
   }
 
@@ -179,41 +172,34 @@ function buildRiskDrivers(
 function buildRecommendations(
   memberRisk: Awaited<ReturnType<typeof calculateMemberRisk>>,
   loanDecision: Awaited<ReturnType<typeof evaluateLoanDecision>>,
-  investmentRisk: Awaited<ReturnType<typeof calculateInvestmentRisk>>
+  investmentRisk: Awaited<ReturnType<typeof calculateInvestmentRisk>>,
 ): string[] {
   const recommendations: string[] = [];
 
-  if (
-    memberRisk.activeLoans > 0 &&
-    memberRisk.repaymentRate === 0
-  ) {
+  if (memberRisk.activeLoans > 0 && memberRisk.repaymentRate === 0) {
     recommendations.push(
-      "Repay the existing loan before taking additional borrowing."
+      "Repay the existing loan before taking additional borrowing.",
     );
   }
 
   if (loanDecision.projectedLoanToSavingsRatio > 2) {
-    recommendations.push(
-      "Increase savings to improve borrowing capacity."
-    );
+    recommendations.push("Increase savings to improve borrowing capacity.");
   }
 
   if (memberRisk.creditScore < 75) {
     recommendations.push(
-      "Build a stronger repayment history to improve the credit score."
+      "Build a stronger repayment history to improve the credit score.",
     );
   }
 
   if (investmentRisk.netInvestmentExposure.amount !== "0") {
     recommendations.push(
-      "Monitor investment concentration alongside borrowing obligations."
+      "Monitor investment concentration alongside borrowing obligations.",
     );
   }
 
   if (recommendations.length === 0) {
-    recommendations.push(
-      "Maintain the current savings and repayment profile."
-    );
+    recommendations.push("Maintain the current savings and repayment profile.");
   }
 
   return recommendations;
@@ -228,37 +214,23 @@ function buildRecommendations(
 async function buildWhatIfAnalysis(
   wallet: string,
   currentRequestedAmount: string,
-  duration: number
+  duration: number,
 ) {
-  const amounts = [
-    currentRequestedAmount,
-    "0.75",
-    "0.5",
-    "0.25",
-  ];
+  const amounts = [currentRequestedAmount, "0.75", "0.5", "0.25"];
 
-  const uniqueAmounts = [
-    ...new Set(amounts),
-  ];
+  const uniqueAmounts = [...new Set(amounts)];
 
   const scenarios = [];
 
   for (const amount of uniqueAmounts) {
-    const decision = await evaluateLoanDecision(
-      wallet,
-      amount,
-      duration
-    );
+    const decision = await evaluateLoanDecision(wallet, amount, duration);
 
     scenarios.push({
       requestedAmount: amount,
       decision: decision.decision,
-      projectedLoanExposure:
-        decision.projectedLoanExposure.amount,
-      projectedLoanToSavingsRatio:
-        decision.projectedLoanToSavingsRatio,
-      savingsBalance:
-        decision.savingsBalance.amount,
+      projectedLoanExposure: decision.projectedLoanExposure.amount,
+      projectedLoanToSavingsRatio: decision.projectedLoanToSavingsRatio,
+      savingsBalance: decision.savingsBalance.amount,
     });
   }
 
@@ -271,64 +243,45 @@ async function generateAIAnalysis(
   loanDecision: Awaited<ReturnType<typeof evaluateLoanDecision>>,
   riskLevel: "LOW" | "MEDIUM" | "HIGH",
   riskDrivers: RiskDriver[],
-  whatIfScenarios: Awaited<
-    ReturnType<typeof buildWhatIfAnalysis>
-  >
+  whatIfScenarios: Awaited<ReturnType<typeof buildWhatIfAnalysis>>,
 ) {
   const verifiedFacts = {
     creditScore: memberRisk.creditScore,
     creditRiskTier: memberRisk.creditRiskTier,
 
-    financialRiskScore:
-      memberRisk.financialRiskScore,
+    financialRiskScore: memberRisk.financialRiskScore,
 
-    financialRiskLevel:
-      memberRisk.financialRiskLevel,
+    financialRiskLevel: memberRisk.financialRiskLevel,
 
-    savingsBalance:
-      memberRisk.savingsBalance,
+    savingsBalance: memberRisk.savingsBalance,
 
-    activeLoans:
-      memberRisk.activeLoans,
+    activeLoans: memberRisk.activeLoans,
 
-    totalBorrowed:
-      memberRisk.totalBorrowed,
+    totalBorrowed: memberRisk.totalBorrowed,
 
-    totalRepaid:
-      memberRisk.totalRepaid,
+    totalRepaid: memberRisk.totalRepaid,
 
-    repaymentRate:
-      memberRisk.repaymentRate,
+    repaymentRate: memberRisk.repaymentRate,
 
-    requestedLoan:
-      loanDecision.requestedAmount,
+    requestedLoan: loanDecision.requestedAmount,
 
-    duration:
-      loanDecision.duration,
+    duration: loanDecision.duration,
 
-    projectedLoanExposure:
-      loanDecision.projectedLoanExposure,
+    projectedLoanExposure: loanDecision.projectedLoanExposure,
 
-    projectedLoanToSavingsRatio:
-      loanDecision.projectedLoanToSavingsRatio,
+    projectedLoanToSavingsRatio: loanDecision.projectedLoanToSavingsRatio,
 
-    deterministicDecision:
-      loanDecision.decision,
+    deterministicDecision: loanDecision.decision,
 
-    investmentRiskScore:
-      investmentRisk.investmentRiskScore,
+    investmentRiskScore: investmentRisk.investmentRiskScore,
 
-    investmentRiskLevel:
-      investmentRisk.investmentRiskLevel,
+    investmentRiskLevel: investmentRisk.investmentRiskLevel,
 
-    investmentActivity:
-      investmentRisk.investmentActivity,
+    investmentActivity: investmentRisk.investmentActivity,
 
-    netInvestmentExposure:
-      investmentRisk.netInvestmentExposure,
+    netInvestmentExposure: investmentRisk.netInvestmentExposure,
 
-    deterministicRiskLevel:
-      riskLevel,
+    deterministicRiskLevel: riskLevel,
 
     riskDrivers,
 
@@ -404,11 +357,7 @@ IMPORTANT RULES:
                   },
                 },
 
-                required: [
-                  "requestedAmount",
-                  "decision",
-                  "explanation",
-                ],
+                required: ["requestedAmount", "decision", "explanation"],
 
                 additionalProperties: false,
               },
@@ -429,9 +378,7 @@ IMPORTANT RULES:
   });
 
   if (!response.output_text) {
-    throw new Error(
-      "OpenAI returned an empty response"
-    );
+    throw new Error("OpenAI returned an empty response");
   }
 
   return JSON.parse(response.output_text) as {
@@ -449,53 +396,43 @@ IMPORTANT RULES:
 export async function analyzeMemberRisk(
   wallet: string,
   requestedAmount: string,
-  duration: number
+  duration: number,
 ): Promise<AgentAnalysis> {
-  const [
-    memberRisk,
-    investmentRisk,
-    loanDecision,
-  ] = await Promise.all([
+  const [memberRisk, investmentRisk, loanDecision] = await Promise.all([
     calculateMemberRisk(wallet),
     calculateInvestmentRisk(wallet),
-    evaluateLoanDecision(
-      wallet,
-      requestedAmount,
-      duration
-    ),
+    evaluateLoanDecision(wallet, requestedAmount, duration),
   ]);
 
   const riskLevel = determineRiskLevel(
     memberRisk.creditScore,
     memberRisk.financialRiskScore,
     investmentRisk.investmentRiskScore,
-    loanDecision.decision
+    loanDecision.decision,
   );
 
   const keyRiskDrivers = buildRiskDrivers(
     memberRisk,
     loanDecision,
-    investmentRisk
+    investmentRisk,
   );
 
-  const deterministicRecommendations =
-    buildRecommendations(
-      memberRisk,
-      loanDecision,
-      investmentRisk
-    );
+  const deterministicRecommendations = buildRecommendations(
+    memberRisk,
+    loanDecision,
+    investmentRisk,
+  );
 
   const investmentSummary =
     investmentRisk.netInvestmentExposure.amount === "0"
       ? "The member has investment activity but currently has no net investment exposure."
       : `The member currently has ${investmentRisk.netInvestmentExposure.amount} ${investmentRisk.netInvestmentExposure.currency} of net investment exposure.`;
 
-  const whatIfScenarios =
-    await buildWhatIfAnalysis(
-      wallet,
-      requestedAmount,
-      duration
-    );
+  const whatIfScenarios = await buildWhatIfAnalysis(
+    wallet,
+    requestedAmount,
+    duration,
+  );
 
   /*
    * The deterministic engine remains authoritative.
@@ -507,7 +444,7 @@ export async function analyzeMemberRisk(
     loanDecision,
     riskLevel,
     keyRiskDrivers,
-    whatIfScenarios
+    whatIfScenarios,
   );
 
   return {
@@ -522,33 +459,25 @@ export async function analyzeMemberRisk(
     keyRiskDrivers,
 
     loanAnalysis: {
-      requestedAmount:
-        loanDecision.requestedAmount.amount,
+      requestedAmount: loanDecision.requestedAmount.amount,
 
       duration,
 
-      projectedLoanToSavingsRatio:
-        loanDecision.projectedLoanToSavingsRatio,
+      projectedLoanToSavingsRatio: loanDecision.projectedLoanToSavingsRatio,
 
-      decision:
-        loanDecision.decision,
+      decision: loanDecision.decision,
     },
 
     investmentPosition: {
-      riskScore:
-        investmentRisk.investmentRiskScore,
+      riskScore: investmentRisk.investmentRiskScore,
 
-      riskLevel:
-        investmentRisk.investmentRiskLevel,
+      riskLevel: investmentRisk.investmentRiskLevel,
 
-      netExposure:
-        investmentRisk.netInvestmentExposure.amount,
+      netExposure: investmentRisk.netInvestmentExposure.amount,
 
-      investmentActivity:
-        investmentRisk.investmentActivity,
+      investmentActivity: investmentRisk.investmentActivity,
 
-      summary:
-        investmentSummary,
+      summary: investmentSummary,
     },
 
     recommendations:
@@ -556,10 +485,7 @@ export async function analyzeMemberRisk(
         ? aiAnalysis.recommendations
         : deterministicRecommendations,
 
-    confidence:
-      keyRiskDrivers.length > 0
-        ? "HIGH"
-        : "MEDIUM",
+    confidence: keyRiskDrivers.length > 0 ? "HIGH" : "MEDIUM",
 
     dataSources: [
       "The Graph",
@@ -570,8 +496,7 @@ export async function analyzeMemberRisk(
       "Arc Testnet",
     ],
 
-    whatIfAnalysis:
-      aiAnalysis.whatIfAnalysis,
+    whatIfAnalysis: aiAnalysis.whatIfAnalysis,
 
     aiAnalysis,
   };

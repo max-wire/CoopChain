@@ -2,7 +2,7 @@ const GRAPH_URL = process.env.GRAPH_URL!;
 
 async function queryGraph<T>(
   query: string,
-  variables: Record<string, unknown> = {}
+  variables: Record<string, unknown> = {},
 ): Promise<T> {
   const response = await fetch(GRAPH_URL, {
     method: "POST",
@@ -52,6 +52,19 @@ export interface Loan {
   updatedAt: string;
 }
 
+export interface Investment {
+  id: string;
+  investmentId: string;
+  name: string;
+  symbol: string;
+  assetType: string;
+  token: string;
+  issuer: string;
+  price: string;
+  totalSupply: string;
+  active: boolean;
+}
+
 export interface InvestmentTransaction {
   id: string;
   investor: string;
@@ -76,6 +89,7 @@ export async function getMemberFinancialData(wallet: string) {
   const data = await queryGraph<{
     members: Member[];
     loans: Loan[];
+    investments: Investment[];
     investmentTransactions: InvestmentTransaction[];
     savingsTransactions: SavingsTransaction[];
   }>(
@@ -111,6 +125,22 @@ export async function getMemberFinancialData(wallet: string) {
           updatedAt
         }
 
+        investments(
+          first: 100
+          where: { active: true }
+        ) {
+          id
+          investmentId
+          name
+          symbol
+          assetType
+          token
+          issuer
+          price
+          totalSupply
+          active
+        }
+
         investmentTransactions(
           where: { investor: $wallet }
           first: 100
@@ -140,7 +170,7 @@ export async function getMemberFinancialData(wallet: string) {
     `,
     {
       wallet: wallet.toLowerCase(),
-    }
+    },
   );
 
   return data;

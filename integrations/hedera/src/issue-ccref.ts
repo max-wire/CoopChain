@@ -52,11 +52,7 @@ async function main() {
     );
   }
 
-  const factory = new ethers.Contract(
-    FACTORY_ADDRESS,
-    FACTORY_ABI,
-    wallet,
-  );
+  const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, wallet);
 
   /*
    * ------------------------------------------------------------
@@ -75,18 +71,10 @@ async function main() {
     BLR_ADDRESS,
 
     // ResolverProxyConfiguration
-    [
-      EQUITY_CONFIG_ID,
-      1n,
-    ],
+    [EQUITY_CONFIG_ID, 1n],
 
     // RBAC configuration
-    [
-      [
-        DEFAULT_ADMIN_ROLE,
-        [wallet.address],
-      ],
-    ],
+    [[DEFAULT_ADMIN_ROLE, [wallet.address]]],
 
     true, // isControllable
     true, // isWhiteList
@@ -94,12 +82,7 @@ async function main() {
     1_000_000n, // maxSupply
 
     // ERC20MetadataInfo
-    [
-      "CoopChain Real Estate Fund",
-      "CCREF",
-      "KE0000000091",
-      18,
-    ],
+    ["CoopChain Real Estate Fund", "CCREF", "KE0000000091", 18],
 
     false, // clearingActive
     true, // internalKycActivated
@@ -149,10 +132,7 @@ async function main() {
    * Both nested tuples are therefore supplied positionally.
    */
 
-  const equityDataArgs = [
-    securityDataArgs,
-    equityDetailsArgs,
-  ];
+  const equityDataArgs = [securityDataArgs, equityDetailsArgs];
 
   /*
    * ------------------------------------------------------------

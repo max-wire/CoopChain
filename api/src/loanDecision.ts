@@ -3,10 +3,7 @@ import { parseUnits } from "ethers";
 import { calculateMemberRisk } from "./risk";
 import { formatUsdc } from "./format";
 
-export type LoanDecision =
-  | "APPROVE"
-  | "REVIEW"
-  | "DECLINE";
+export type LoanDecision = "APPROVE" | "REVIEW" | "DECLINE";
 
 export interface LoanDecisionResult {
   decision: LoanDecision;
@@ -49,24 +46,17 @@ export interface LoanDecisionResult {
 export async function evaluateLoanDecision(
   wallet: string,
   requestedAmount: string,
-  duration: number
+  duration: number,
 ): Promise<LoanDecisionResult> {
   const risk = await calculateMemberRisk(wallet);
 
   const requestedAmountRaw = parseUnits(requestedAmount, 6);
 
-  const savingsRaw = parseUnits(
-    risk.savingsBalance.amount,
-    6
-  );
+  const savingsRaw = parseUnits(risk.savingsBalance.amount, 6);
 
-  const currentBorrowedRaw = parseUnits(
-    risk.totalBorrowed.amount,
-    6
-  );
+  const currentBorrowedRaw = parseUnits(risk.totalBorrowed.amount, 6);
 
-  const projectedBorrowedRaw =
-    currentBorrowedRaw + requestedAmountRaw;
+  const projectedBorrowedRaw = currentBorrowedRaw + requestedAmountRaw;
 
   let projectedLoanToSavingsRatio = 0;
 
@@ -86,32 +76,26 @@ export async function evaluateLoanDecision(
   if (!risk.active) {
     decision = "DECLINE";
 
-    reasons.push(
-      "Member account is inactive"
-    );
+    reasons.push("Member account is inactive");
   }
 
   if (risk.creditScore < 40) {
     decision = "DECLINE";
 
-    reasons.push(
-      "Credit score is below the minimum lending threshold"
-    );
+    reasons.push("Credit score is below the minimum lending threshold");
   }
 
   if (savingsRaw === 0n) {
     decision = "DECLINE";
 
-    reasons.push(
-      "Member has no savings balance to support the requested loan"
-    );
+    reasons.push("Member has no savings balance to support the requested loan");
   }
 
   if (projectedLoanToSavingsRatio >= 3) {
     decision = "DECLINE";
 
     reasons.push(
-      "Projected borrowing would reach or exceed 3x the member's savings"
+      "Projected borrowing would reach or exceed 3x the member's savings",
     );
   }
 
@@ -123,36 +107,25 @@ export async function evaluateLoanDecision(
     if (risk.creditScore < 75) {
       decision = "REVIEW";
 
-      reasons.push(
-        "Credit score is below the automatic approval threshold"
-      );
+      reasons.push("Credit score is below the automatic approval threshold");
     }
 
-    if (
-      risk.activeLoans > 0 &&
-      risk.repaymentRate < 50
-    ) {
+    if (risk.activeLoans > 0 && risk.repaymentRate < 50) {
       decision = "REVIEW";
 
-      reasons.push(
-        "Existing loan repayment performance requires review"
-      );
+      reasons.push("Existing loan repayment performance requires review");
     }
 
     if (risk.activeLoans >= 2) {
       decision = "REVIEW";
 
-      reasons.push(
-        "Member already has multiple active loans"
-      );
+      reasons.push("Member already has multiple active loans");
     }
 
     if (projectedLoanToSavingsRatio > 2) {
       decision = "REVIEW";
 
-      reasons.push(
-        "Projected borrowing would exceed 2x the member's savings"
-      );
+      reasons.push("Projected borrowing would exceed 2x the member's savings");
     }
   }
 
@@ -166,22 +139,16 @@ export async function evaluateLoanDecision(
     projectedLoanToSavingsRatio <= 1.5 &&
     (risk.activeLoans === 0 || risk.repaymentRate >= 50)
   ) {
-    reasons.push(
-      "Credit score meets the automatic approval threshold"
-    );
+    reasons.push("Credit score meets the automatic approval threshold");
 
     reasons.push(
-      "Projected borrowing remains within the supported savings ratio"
+      "Projected borrowing remains within the supported savings ratio",
     );
 
     if (risk.activeLoans === 0) {
-      reasons.push(
-        "Member has no existing active loans"
-      );
+      reasons.push("Member has no existing active loans");
     } else {
-      reasons.push(
-        "Existing loan repayment performance is acceptable"
-      );
+      reasons.push("Existing loan repayment performance is acceptable");
     }
   }
 
@@ -197,9 +164,7 @@ export async function evaluateLoanDecision(
   ) {
     decision = "REVIEW";
 
-    reasons.push(
-      "Loan does not meet all automatic approval criteria"
-    );
+    reasons.push("Loan does not meet all automatic approval criteria");
   }
 
   return {
@@ -217,13 +182,9 @@ export async function evaluateLoanDecision(
 
     savingsBalance: risk.savingsBalance,
 
-    currentLoanExposure: formatUsdc(
-      currentBorrowedRaw
-    ),
+    currentLoanExposure: formatUsdc(currentBorrowedRaw),
 
-    projectedLoanExposure: formatUsdc(
-      projectedBorrowedRaw
-    ),
+    projectedLoanExposure: formatUsdc(projectedBorrowedRaw),
 
     projectedLoanToSavingsRatio,
 

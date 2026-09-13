@@ -1,8 +1,20 @@
 import { getMemberFinancialData } from "./graph";
-import { formatUsdc, formatToken } from "./format";
+import { formatUsdc } from "./format";
 
 export interface InvestmentRiskResult {
   member: string;
+
+  investment: {
+    investmentId: string;
+    name: string;
+    symbol: string;
+    assetType: string;
+    token: string;
+    issuer: string;
+    price: string;
+    totalSupply: string;
+    active: boolean;
+  };
 
   totalPurchases: {
     amount: string;
@@ -41,53 +53,76 @@ export interface InvestmentRiskResult {
 }
 
 export async function calculateInvestmentRisk(
-  wallet: string
+  wallet: string,
 ): Promise<InvestmentRiskResult> {
   const data = await getMemberFinancialData(wallet);
 
+  const investment = data.investments[0];
+
   const purchases = data.investmentTransactions.filter(
-    (tx) => tx.type === "PURCHASE"
+    (tx) => tx.type === "PURCHASE",
   );
 
   const redemptions = data.investmentTransactions.filter(
-    (tx) => tx.type === "REDEEM"
+    (tx) => tx.type === "REDEEM",
   );
 
   const totalPurchases = purchases.reduce(
     (sum, tx) => sum + BigInt(tx.usdcAmount),
-    0n
+    0n,
   );
 
   const totalRedemptions = redemptions.reduce(
     (sum, tx) => sum + BigInt(tx.usdcAmount),
-    0n
+    0n,
   );
 
   const netExposure =
-    totalPurchases > totalRedemptions
-      ? totalPurchases - totalRedemptions
-      : 0n;
+    totalPurchases > totalRedemptions ? totalPurchases - totalRedemptions : 0n;
 
   const factors: string[] = [];
 
   let score = 100;
 
-  const transactionCount =
-    data.investmentTransactions.length;
+  const transactionCount = data.investmentTransactions.length;
 
   const hasInvestmentActivity = transactionCount > 0;
+
+  const investmentProduct = investment
+    ? {
+        investmentId: investment.investmentId,
+        name: investment.name,
+        symbol: investment.symbol,
+        assetType: investment.assetType,
+        token: investment.token,
+        issuer: investment.issuer,
+        price: investment.price,
+        totalSupply: investment.totalSupply,
+        active: investment.active,
+      }
+    : {
+        investmentId: "",
+        name: "No investment product",
+        symbol: "",
+        assetType: "",
+        token: "",
+        issuer: "",
+        price: "0",
+        totalSupply: "0",
+        active: false,
+      };
 
   /*
    * No investment activity is not necessarily risky.
    * We treat it as informational.
    */
   if (!hasInvestmentActivity) {
-    factors.push(
-      "Member has no recorded investment activity"
-    );
+    factors.push("Member has no recorded investment activity");
 
     return {
       member: wallet,
+
+      investment: investmentProduct,
 
       totalPurchases: formatUsdc(totalPurchases),
 
@@ -121,15 +156,10 @@ export async function calculateInvestmentRisk(
    * Large net exposure relative to activity can indicate
    * concentration risk.
    */
-  if (
-    totalPurchases > 0n &&
-    netExposure * 2n > totalPurchases
-  ) {
+  if (totalPurchases > 0n && netExposure * 2n > totalPurchases) {
     score -= 10;
 
-    factors.push(
-      "Member currently has meaningful net investment exposure"
-    );
+    factors.push("Member currently has meaningful net investment exposure");
   }
 
   /*
@@ -139,36 +169,25 @@ export async function calculateInvestmentRisk(
   if (transactionCount >= 5) {
     score -= 10;
 
-    factors.push(
-      "Member has high investment transaction activity"
-    );
+    factors.push("Member has high investment transaction activity");
   }
 
   /*
    * If purchases are substantially larger than redemptions,
    * capital remains exposed to investments.
    */
-  if (
-    totalPurchases > 0n &&
-    totalRedemptions * 4n < totalPurchases
-  ) {
+  if (totalPurchases > 0n && totalRedemptions * 4n < totalPurchases) {
     score -= 10;
 
-    factors.push(
-      "Investment purchases substantially exceed redemptions"
-    );
+    factors.push("Investment purchases substantially exceed redemptions");
   }
 
   if (netExposure === 0n) {
-    factors.push(
-      "Member currently has no net investment exposure"
-    );
+    factors.push("Member currently has no net investment exposure");
   }
 
   if (factors.length === 0) {
-    factors.push(
-      "No significant investment risk factors detected"
-    );
+    factors.push("No significant investment risk factors detected");
   }
 
   score = Math.max(0, Math.min(100, score));
@@ -185,6 +204,8 @@ export async function calculateInvestmentRisk(
 
   return {
     member: wallet,
+
+    investment: investmentProduct,
 
     totalPurchases: formatUsdc(totalPurchases),
 

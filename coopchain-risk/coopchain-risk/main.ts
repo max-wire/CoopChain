@@ -21,7 +21,7 @@ type FinancialSnapshot = {
 };
 
 type RiskResult = {
-  riskTier: string;
+  riskTier: "LOW" | "MEDIUM" | "HIGH";
   eligible: boolean;
 };
 
@@ -30,10 +30,11 @@ export const onConfidentialRiskCheck = (
   _triggerOutput: unknown,
 ): RiskResult => {
   /*
-   * Fetch CoopChain's verified financial snapshot.
-   *
-   * The request is performed from the confidential handler.
-   */
+
+* Fetch CoopChain's verified financial snapshot.
+*
+* This request is performed from the confidential TEE handler.
+  */
   const http = new HTTPClient();
 
   const response = http
@@ -48,19 +49,24 @@ export const onConfidentialRiskCheck = (
   }
 
   /*
-   * The Risk API returns:
-   *
-   * {
-   *   success: true,
-   *   data: {
-   *     creditScore: 40,
-   *     loanToSavingsRatio: 2,
-   *     repaymentRate: 0
-   *   }
-   * }
-   *
-   * Therefore, the financial values must be read from payload.data.
-   */
+
+* The Risk API returns:
+*
+* {
+* success: true,
+* data: {
+* ```
+  creditScore: 40,
+  ```
+* ```
+  loanToSavingsRatio: 2,
+  ```
+* ```
+  repaymentRate: 0
+  ```
+* }
+* }
+  */
   const payload = json(response) as {
     success: boolean;
     data: {
@@ -81,11 +87,12 @@ export const onConfidentialRiskCheck = (
   };
 
   /*
-   * Confidential CoopChain policy.
-   *
-   * These thresholds remain inside the TEE.
-   * They are intentionally NOT returned in the result.
-   */
+
+* Confidential CoopChain policy.
+*
+* These thresholds remain inside the TEE.
+* They are never sent to the frontend or persisted by the API.
+  */
   const MIN_CREDIT_SCORE = 55;
   const MAX_LOAN_TO_SAVINGS = 2.5;
   const MIN_REPAYMENT_RATE = 60;
@@ -95,7 +102,7 @@ export const onConfidentialRiskCheck = (
     financialSnapshot.loanToSavingsRatio <= MAX_LOAN_TO_SAVINGS &&
     financialSnapshot.repaymentRate >= MIN_REPAYMENT_RATE;
 
-  let riskTier: string;
+  let riskTier: RiskResult["riskTier"];
 
   if (!eligible) {
     riskTier = "HIGH";
@@ -108,14 +115,48 @@ export const onConfidentialRiskCheck = (
     riskTier = "LOW";
   }
 
-  runtime.log(
-    `Confidential CoopChain risk evaluation: ${riskTier}`,
-  );
-
-  return {
+  const result: RiskResult = {
     riskTier,
     eligible,
   };
+
+  runtime.log(
+    `Confidential CoopChain risk evaluation: ${riskTier}, eligible=${eligible}`,
+  );
+
+  /*
+
+* Send ONLY the final confidential assessment back to CoopChain.
+*
+* The financial snapshot and policy thresholds are deliberately
+* excluded from this request.
+  */
+  const callbackResponse = http
+    .sendRequest(runtime, {
+      url: `${runtime.config.riskApiUrl}/api/risk/cre-result`,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: Buffer.from(
+        JSON.stringify({
+          wallet: runtime.config.memberWallet,
+          riskTier: result.riskTier,
+          eligible: result.eligible,
+        }),
+      ).toString("base64"),
+    })
+    .result();
+
+  if (!ok(callbackResponse)) {
+    throw new Error(
+      `CRE result callback failed with status ${callbackResponse.statusCode}`,
+    );
+  }
+
+  runtime.log("Confidential CoopChain risk result persisted successfully");
+
+  return result;
 };
 
 export const initWorkflow = (config: Config) => {

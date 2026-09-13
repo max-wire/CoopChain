@@ -13,18 +13,16 @@ export async function calculateMemberRisk(wallet: string) {
 
   const credit = await getCreditScore(wallet);
 
-  const activeLoans = data.loans.filter(
-    (loan) => loan.status === "ACTIVE"
-  );
+  const activeLoans = data.loans.filter((loan) => loan.status === "ACTIVE");
 
   const totalBorrowed = data.loans.reduce(
     (sum, loan) => sum + BigInt(loan.principal),
-    0n
+    0n,
   );
 
   const totalRepaid = data.loans.reduce(
     (sum, loan) => sum + BigInt(loan.amountRepaid),
-    0n
+    0n,
   );
 
   const savings = BigInt(member.savingsBalance);
@@ -54,25 +52,18 @@ export async function calculateMemberRisk(wallet: string) {
 
   const investmentPurchases = data.investmentTransactions
     .filter((tx) => tx.type === "PURCHASE")
-    .reduce(
-      (sum, tx) => sum + BigInt(tx.usdcAmount),
-      0n
-    );
+    .reduce((sum, tx) => sum + BigInt(tx.usdcAmount), 0n);
 
   const investmentRedemptions = data.investmentTransactions
     .filter((tx) => tx.type === "REDEEM")
-    .reduce(
-      (sum, tx) => sum + BigInt(tx.usdcAmount),
-      0n
-    );
+    .reduce((sum, tx) => sum + BigInt(tx.usdcAmount), 0n);
 
   const netInvestmentExposure =
     investmentPurchases >= investmentRedemptions
       ? investmentPurchases - investmentRedemptions
       : 0n;
 
-  const investmentActivity =
-    data.investmentTransactions.length > 0;
+  const investmentActivity = data.investmentTransactions.length > 0;
 
   /*
    * ------------------------------------------------------------
@@ -104,19 +95,13 @@ export async function calculateMemberRisk(wallet: string) {
   if (loanToSavingsRatio > 2) {
     financialRiskScore -= 35;
 
-    factors.push(
-      "Total borrowing is more than 2x the member's savings"
-    );
+    factors.push("Total borrowing is more than 2x the member's savings");
   } else if (loanToSavingsRatio > 1) {
     financialRiskScore -= 20;
 
-    factors.push(
-      "Total borrowing exceeds the member's savings"
-    );
+    factors.push("Total borrowing exceeds the member's savings");
   } else if (loanToSavingsRatio > 0) {
-    factors.push(
-      "Total borrowing is within the member's savings balance"
-    );
+    factors.push("Total borrowing is within the member's savings balance");
   }
 
   // ------------------------------------------------------------
@@ -126,19 +111,13 @@ export async function calculateMemberRisk(wallet: string) {
   if (repaymentRate === 0 && activeLoans.length > 0) {
     financialRiskScore -= 25;
 
-    factors.push(
-      "No repayments have been recorded on active loans"
-    );
+    factors.push("No repayments have been recorded on active loans");
   } else if (repaymentRate < 50) {
     financialRiskScore -= 15;
 
-    factors.push(
-      "Less than half of borrowed principal has been repaid"
-    );
+    factors.push("Less than half of borrowed principal has been repaid");
   } else if (repaymentRate >= 90) {
-    factors.push(
-      "Most borrowed principal has been repaid"
-    );
+    factors.push("Most borrowed principal has been repaid");
   }
 
   // ------------------------------------------------------------
@@ -148,13 +127,9 @@ export async function calculateMemberRisk(wallet: string) {
   if (activeLoans.length >= 2) {
     financialRiskScore -= 15;
 
-    factors.push(
-      "Member has multiple active loans"
-    );
+    factors.push("Member has multiple active loans");
   } else if (activeLoans.length === 1) {
-    factors.push(
-      "Member currently has one active loan"
-    );
+    factors.push("Member currently has one active loan");
   }
 
   // ------------------------------------------------------------
@@ -162,28 +137,18 @@ export async function calculateMemberRisk(wallet: string) {
   // ------------------------------------------------------------
 
   if (netInvestmentExposure > 0n) {
-    factors.push(
-      "Member currently has net investment exposure"
-    );
+    factors.push("Member currently has net investment exposure");
   } else if (investmentActivity) {
-    factors.push(
-      "Member has investment activity but no current net exposure"
-    );
+    factors.push("Member has investment activity but no current net exposure");
   }
 
   // ------------------------------------------------------------
   // Clamp score
   // ------------------------------------------------------------
 
-  financialRiskScore = Math.max(
-    0,
-    Math.min(100, financialRiskScore)
-  );
+  financialRiskScore = Math.max(0, Math.min(100, financialRiskScore));
 
-  let financialRiskLevel:
-    | "LOW"
-    | "MEDIUM"
-    | "HIGH";
+  let financialRiskLevel: "LOW" | "MEDIUM" | "HIGH";
 
   if (financialRiskScore >= 75) {
     financialRiskLevel = "LOW";
@@ -209,21 +174,16 @@ export async function calculateMemberRisk(wallet: string) {
 
     repaymentRate,
 
-    loanToSavingsRatio:
-      Number.isFinite(loanToSavingsRatio)
-        ? Number(loanToSavingsRatio.toFixed(4))
-        : null,
+    loanToSavingsRatio: Number.isFinite(loanToSavingsRatio)
+      ? Number(loanToSavingsRatio.toFixed(4))
+      : null,
 
     investmentActivity,
     investmentPurchases: formatUsdc(investmentPurchases),
 
-    investmentRedemptions: formatUsdc(
-      investmentRedemptions
-    ),
+    investmentRedemptions: formatUsdc(investmentRedemptions),
 
-    netInvestmentExposure: formatUsdc(
-      netInvestmentExposure
-    ),
+    netInvestmentExposure: formatUsdc(netInvestmentExposure),
 
     financialRiskScore,
     financialRiskLevel,
