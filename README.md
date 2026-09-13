@@ -2,71 +2,127 @@
 
 **Onchain cooperative financial infrastructure for savings, risk-based lending, and tokenized investments.**
 
-CoopChain is a blockchain-based financial infrastructure designed for cooperatives and SACCOs. It brings cooperative savings, credit assessment, actuarial loan calculations, stablecoin lending, treasury management, tokenized investments, and onchain risk analytics into a transparent and auditable system.
+CoopChain is a blockchain-based financial infrastructure for cooperatives and SACCOs. It connects **member savings, credit scoring, actuarial lending, stablecoin treasury management, tokenized investments, onchain financial data, confidential risk policies, and AI-assisted risk explanations** into one modular system.
 
-The protocol combines **smart-contract-based financial workflows**, **actuarial mathematics**, **credit risk modelling**, **tokenization**, **confidential computation**, and **AI-assisted risk analysis** to help cooperatives make more informed lending and investment decisions.
+The core principle is simple:
+
+> **Financial truth should be verifiable, risk decisions should be systematic, sensitive policies can remain confidential, and AI should explain rather than invent the decision.**
 
 ---
 
-# 🚀 What CoopChain Does
+## 🚀 The CoopChain Story
 
-CoopChain provides a modular financial system covering the cooperative lifecycle:
+CoopChain models the financial lifecycle of a cooperative member:
 
 ```text
-                         COOPCHAIN
-
-                            │
-
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-   MEMBERSHIP           SAVINGS            GOVERNANCE
-        │                   │
-        └─────────────┬─────┘
-                      │
-                    CREDIT
-                      │
-             ┌────────┴────────┐
-             │                 │
-        CreditScore     ActuarialEngine
-             │                 │
-             └────────┬────────┘
-                      │
-                  LoanEngine
-                      │
-                     USDC
-                      │
-                Arc Treasury
-                      │
-             ┌────────┴────────┐
-             │                 │
-          LENDING        INVESTMENTS
-                               │
-                       InvestmentRegistry
-                               │
-                       InvestmentToken
-                               │
-                        InvestmentPool
-                               │
-                         Hedera CCREF
-                               │
-                               ▼
-                       Risk & Analytics
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-          The Graph      Chainlink CRE       AI Agent
-          financial      confidential       explanation
-             data            risk
+Cooperative
+    │
+    ▼
+Membership
+    │
+    ▼
+Savings
+    │
+    ▼
+Credit Score
+    │
+    ├───────────────┐
+    ▼               ▼
+Loan Decision   Investment
+    │               │
+    ▼               ▼
+Actuarial Loan   Investment
+Calculation      Registry
+    │               │
+    ▼               ▼
+USDC Lending     Hedera CCREF
+    │               │
+    └───────┬───────┘
+            ▼
+     Financial Data
+            │
+        The Graph
+            │
+            ▼
+       Risk Engine
+            │
+     ┌──────┴──────┐
+     ▼             ▼
+Deterministic   Chainlink CRE
+Risk Analysis   Confidential Policy
+     │             │
+     └──────┬──────┘
+            ▼
+      AI Risk Agent
+            │
+            ▼
+    Human-readable
+       explanation
 ```
 
-## Core Capabilities
+The result is a financial infrastructure stack where:
+
+* **Smart contracts** maintain financial state and execute core workflows.
+* **Actuarial mathematics** calculates loan repayment obligations.
+* **Deterministic risk engines** evaluate financial exposure.
+* **The Graph** provides indexed onchain financial data.
+* **Hedera** provides tokenized investment infrastructure.
+* **Chainlink CRE** provides confidential risk-policy evaluation.
+* **AI** explains financial decisions without becoming the source of financial truth.
+
+---
+
+# ✨ Current Demonstration
+
+The current CoopChain implementation demonstrates an end-to-end cooperative financial workflow.
+
+### Member
+
+A cooperative member can be registered and evaluated through the financial system.
+
+### Savings
+
+Member savings provide the foundation for credit assessment and borrowing capacity.
+
+### Credit
+
+An onchain credit score combines membership and savings behaviour.
+
+### Lending
+
+The system calculates a risk tier, determines the applicable lending rate, calculates an actuarial monthly payment, and evaluates the requested loan against the member's financial position.
+
+### Investment
+
+Members can interact with registered investment products through the investment infrastructure.
+
+### Tokenization
+
+The demonstration investment is **CCREF — CoopChain Real Estate Fund**, issued on Hedera Testnet.
+
+### Risk Intelligence
+
+The Graph indexes financial activity for the Risk API, while deterministic risk engines evaluate member, loan, and investment exposure.
+
+### Confidential Risk
+
+Chainlink CRE provides a confidential policy-evaluation path targeting an AWS Nitro TEE.
+
+### AI Explanation
+
+The AI Risk Agent turns verified financial and risk outputs into human-readable explanations and what-if analysis.
+
+---
+
+# 🧩 Core Capabilities
 
 * Cooperative member registration
+* Member activation and deactivation
 * Savings management
 * Onchain credit scoring
 * Risk-based lending
 * Actuarial monthly payment calculations
-* Repayment schedules
+* Loan repayment schedules
 * Loan default rules
 * USDC treasury management
 * Arc Testnet integration
@@ -76,120 +132,90 @@ CoopChain provides a modular financial system covering the cooperative lifecycle
 * Investment redemption
 * Onchain financial records
 * The Graph-powered financial analytics
-* Confidential risk evaluation through Chainlink CRE
+* Deterministic financial risk analysis
+* Confidential risk-policy evaluation through Chainlink CRE
 * AI-assisted risk explanations
+* What-if loan analysis
 * Extensive Foundry test coverage
 
 ---
 
 # 🏗️ Architecture
 
-CoopChain is organized into modular financial, investment, analytics, and risk components.
+CoopChain separates financial state, financial mathematics, risk analysis, confidential policy evaluation, and AI interpretation into distinct layers.
 
 ```text
-CoopChain/
-
-├── Membership
-│   └── CoopVault.sol
-│
-├── Savings
-│   └── Savings.sol
-│
-├── Credit
-│   └── CreditScore.sol
-│
-├── Actuarial
-│   └── ActuarialEngine.sol
-│
-├── Lending
-│   └── LoanEngine.sol
-│
-├── Investment
-│   ├── InvestmentRegistry.sol
-│   ├── InvestmentToken.sol
-│   └── InvestmentPool.sol
-│
-├── Sponsors
-│   ├── Arc
-│   │   ├── ArcTreasury.sol
-│   │   └── interfaces/
-│   │
-│   └── Hedera
-│       └── HederaTokenization.sol
-│
-├── API
-│   ├── Risk Engine
-│   ├── Investment Risk
-│   ├── Loan Decision
-│   └── AI Risk Agent
-│
-├── Graph
-│   └── coopchain-risk
-│
-└── Chainlink CRE
-    └── coopchain-risk
+                         COOPCHAIN
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+   MEMBERSHIP             SAVINGS            INVESTMENTS
+        │                    │                    │
+        ▼                    ▼                    ▼
+   CoopVault             Savings.sol      InvestmentRegistry
+        │                    │                    │
+        └────────────┬───────┘                    ▼
+                     │                       InvestmentPool
+                     ▼                            │
+                CreditScore                       ├── InvestmentToken
+                     │                            │
+          ┌──────────┴──────────┐                 └── Hedera CCREF
+          │                     │
+          ▼                     ▼
+     LoanEngine          ActuarialEngine
+          │                     │
+          └──────────┬──────────┘
+                     ▼
+                USDC Lending
+                     │
+                     ▼
+                Arc Treasury
+                     │
+                     ▼
+              Financial Activity
+                     │
+                     ▼
+                 The Graph
+                     │
+                     ▼
+                Risk API
+                     │
+        ┌────────────┼────────────┐
+        ▼            ▼            ▼
+   Member Risk   Loan Decision   Investment
+     Engine         Engine       Risk Engine
+        │            │            │
+        └────────────┼────────────┘
+                     ▼
+               Chainlink CRE
+                     │
+                     ▼
+                AWS Nitro TEE
+                     │
+                     ▼
+             Confidential Policy
+                     │
+                     ▼
+               Risk Classification
+                     │
+                     ▼
+                AI Risk Agent
+                     │
+                     ▼
+              Human Explanation
 ```
 
-The architecture deliberately separates financial responsibilities.
-
-```text
-Member
-  │
-  ▼
-Savings
-  │
-  ▼
-CreditScore
-  │
-  ├───────────────┐
-  ▼               ▼
-LoanEngine   ActuarialEngine
-  │
-  ▼
-Arc Treasury
-  │
-  ▼
-USDC Lending
-
-InvestmentRegistry
-  │
-  ▼
-InvestmentPool
-  │
-  ├── InvestmentToken
-  │
-  └── Hedera CCREF
-
-The Graph
-  │
-  ▼
-Risk API
-  │
-  ├── Deterministic Risk Engine
-  ├── Loan Decision Engine
-  ├── Investment Risk Engine
-  │
-  └── Chainlink CRE
-          │
-          ▼
-      Confidential
-       Risk Policy
-          │
-          ▼
-      AI Risk Agent
-```
-
-This separation keeps financial truth, financial calculations, confidential policy evaluation, and AI interpretation as distinct layers.
+The architecture deliberately keeps **financial truth and financial interpretation separate**.
 
 ---
 
 # 👥 Membership
 
-`CoopVault` manages cooperative membership.
+`CoopVault.sol` manages cooperative membership.
 
-Members can be registered and deactivated while maintaining an onchain record of their cooperative participation.
+Members can be registered and deactivated while maintaining an onchain record of cooperative participation.
 
-The membership layer acts as an identity and eligibility layer for the rest of the cooperative financial system.
+The membership layer provides the identity and eligibility foundation for the rest of the cooperative financial system.
 
 ---
 
@@ -197,9 +223,9 @@ The membership layer acts as an identity and eligibility layer for the rest of t
 
 `Savings.sol` manages member savings using an ERC-20 compatible stablecoin.
 
-Savings provide the financial foundation for the credit system.
+Savings provide the financial foundation for the credit system and contribute to the member's credit assessment.
 
-The savings layer is also used by the credit scoring system to evaluate member financial behaviour.
+The savings layer records the financial behaviour used by the credit scoring system.
 
 ---
 
@@ -211,11 +237,10 @@ The current V1 model combines:
 
 ```text
 Credit Score
-
 │
-├── Membership Score       30%
+├── Membership Score      30%
 │
-└── Savings Behaviour      70%
+└── Savings Behaviour     70%
 ```
 
 The model considers factors such as:
@@ -225,7 +250,7 @@ The model considers factors such as:
 * Deposit behaviour
 * Savings discipline
 
-The resulting score determines a member's risk tier.
+The resulting score is used to determine the member's risk tier.
 
 ## Risk-Based Lending
 
@@ -255,7 +280,7 @@ It supports:
 * Present value
 * Monthly loan payments
 
-Monthly payments are calculated using an **annuity-immediate** approach with fixed-point precision.
+Monthly payments use an **annuity-immediate** approach with fixed-point precision.
 
 Conceptually:
 
@@ -275,7 +300,7 @@ ActuarialEngine
 Monthly Payment
 ```
 
-This separates financial mathematics from the loan lifecycle itself.
+Separating the actuarial layer from the loan lifecycle allows financial calculations to be tested and evolved independently of lending-state management.
 
 ---
 
@@ -300,15 +325,15 @@ Pending ──────────► Cancelled
 
 The engine:
 
-1. Validates cooperative membership
-2. Evaluates savings and credit information
-3. Determines the applicable risk tier
-4. Applies the corresponding interest rate
-5. Calculates the actuarial monthly payment
-6. Disburses the loan
-7. Tracks repayment progress
-8. Advances the next repayment date
-9. Detects eligible defaults
+1. Validates cooperative membership.
+2. Evaluates savings and credit information.
+3. Determines the applicable risk tier.
+4. Applies the corresponding interest rate.
+5. Calculates the actuarial monthly payment.
+6. Disburses the loan.
+7. Tracks repayment progress.
+8. Advances the next repayment date.
+9. Detects eligible defaults.
 
 ## Repayment Schedule
 
@@ -328,7 +353,7 @@ A loan becomes eligible for default after:
 Next Due Date + 7-day Grace Period
 ```
 
-The implementation keeps the core loan workflow modular without storing an unnecessary array of every future installment.
+The implementation keeps the loan workflow modular without storing an unnecessary array of every future installment.
 
 ---
 
@@ -336,7 +361,7 @@ The implementation keeps the core loan workflow modular without storing an unnec
 
 CoopChain integrates with **Arc Testnet** for USDC treasury management and lending liquidity.
 
-The architecture separates the lending engine from custody of the cooperative's USDC liquidity.
+The lending engine is separated from custody of cooperative liquidity.
 
 ```text
                     Arc Testnet
@@ -355,11 +380,9 @@ The architecture separates the lending engine from custody of the cooperative's 
                     Borrower
 ```
 
-## Why the Treasury Layer?
+## Treasury Responsibilities
 
-Instead of allowing `LoanEngine` to permanently hold cooperative liquidity, `ArcTreasury` provides a dedicated treasury layer.
-
-The treasury controls:
+`ArcTreasury.sol` provides a dedicated treasury layer for:
 
 * Funding
 * Authorized loan disbursement
@@ -370,8 +393,6 @@ The treasury controls:
 Only authorized operators can release funds for lending.
 
 ## Arc Testnet
-
-CoopChain has been deployed and tested against the Arc Testnet USDC environment.
 
 ```text
 Network:
@@ -393,7 +414,7 @@ ArcTreasury:
 
 # 📈 Tokenized Investments
 
-CoopChain provides an investment infrastructure layer for cooperative members.
+CoopChain provides infrastructure for cooperative members to access registered investment products.
 
 ```text
 InvestmentRegistry
@@ -422,7 +443,7 @@ Supported asset categories include:
 * Real Estate
 * Receivables
 
-Each registered investment contains information such as:
+Each registered investment can contain:
 
 * Name
 * Symbol
@@ -493,7 +514,7 @@ Investment prices can change, allowing the value of a member's position to chang
 
 CoopChain integrates **Hedera Asset Tokenization Studio (ATS)** to demonstrate tokenized investment infrastructure.
 
-The integration connects CoopChain's investment registry with a tokenized real-estate investment asset issued on Hedera Testnet.
+The integration connects CoopChain's investment layer with a tokenized real-estate investment asset issued on Hedera Testnet.
 
 ## CCREF
 
@@ -538,7 +559,7 @@ Hedera Contract ID:
 0.0.10454483
 ```
 
-The issuance transaction:
+Issuance transaction:
 
 ```text
 0x57c3e7bc4285102f79a0706c3d92d704d78c6dd9cd16a9d5b55455c5208e648c
@@ -546,17 +567,15 @@ The issuance transaction:
 
 The asset was successfully issued on Hedera Testnet after validating the ISIN checksum.
 
-CoopChain uses the Hedera asset as the tokenized investment product represented by its investment infrastructure.
+CoopChain uses CCREF as the demonstration tokenized investment product for its investment infrastructure.
 
 ---
 
 # 📊 The Graph — Onchain Financial Data
 
-CoopChain integrates **The Graph** to provide indexed, queryable financial data for its risk infrastructure.
+CoopChain integrates **The Graph** as the indexed financial data layer for its risk infrastructure.
 
-The CoopChain subgraph indexes key financial events and entities from the Arc Testnet deployment.
-
-The indexed data includes:
+The CoopChain subgraph indexes key financial events and entities from the Arc Testnet deployment, including:
 
 * Cooperative members
 * Savings activity
@@ -567,7 +586,7 @@ The indexed data includes:
 * Investment token activity
 * Investment pool activity
 
-The Risk API consumes this indexed data rather than reconstructing the entire financial state directly from individual blockchain calls.
+The Risk API consumes indexed financial data rather than reconstructing the complete financial state from individual blockchain calls.
 
 ```text
 Arc Testnet
@@ -579,15 +598,15 @@ CoopChain Contracts
 The Graph Subgraph
      │
      ▼
-Financial Data
+Indexed Financial Data
      │
      ▼
 CoopChain Risk API
 ```
 
-This makes The Graph a **load-bearing component** of CoopChain's risk architecture.
+This makes The Graph a **load-bearing component** of the risk architecture.
 
-The indexed financial state is then used by:
+The indexed state is consumed by:
 
 * Member risk analysis
 * Loan decision evaluation
@@ -599,11 +618,11 @@ The indexed financial state is then used by:
 
 # 🔐 Chainlink CRE — Confidential Risk Workflow
 
-CoopChain integrates **Chainlink CRE (Compute Runtime Environment)** to add a confidential risk-policy evaluation layer to its lending infrastructure.
+CoopChain integrates **Chainlink CRE (Compute Runtime Environment)** as a confidential risk-policy evaluation layer.
 
-The purpose of this integration is to evaluate sensitive risk-policy logic inside a **Trusted Execution Environment (TEE)**.
+The purpose is to evaluate sensitive risk-policy parameters inside a **Trusted Execution Environment (TEE)**.
 
-The confidential workflow uses `handlerInTee` and targets an **AWS Nitro TEE**.
+The current workflow uses `handlerInTee` and targets an **AWS Nitro TEE**.
 
 ## Architecture
 
@@ -615,44 +634,44 @@ The confidential workflow uses `handlerInTee` and targets an **AWS Nitro TEE**.
                         │
                  Financial Snapshot
                         │
-            ┌───────────┴───────────┐
-            │                       │
-            ▼                       ▼
-   Deterministic Risk        Chainlink CRE
-        Engine                    │
-            │                      ▼
-            │                AWS Nitro TEE
-            │                      │
-            │                Private Risk
-            │                   Policy
-            │                      │
-            │                      ▼
-            │               Risk Classification
-            │                      │
-            └───────────┬──────────┘
+             ┌──────────┴──────────┐
+             │                     │
+             ▼                     ▼
+     Deterministic Risk      Chainlink CRE
+          Engine                   │
+             │                     ▼
+             │              AWS Nitro TEE
+             │                     │
+             │              Private Risk
+             │                 Policy
+             │                     │
+             │                     ▼
+             │              Risk Classification
+             │                     │
+             └──────────┬──────────┘
                         ▼
                   AI Risk Agent
 ```
 
-## How the Confidential Workflow Works
+## Confidential Workflow
 
-1. The Graph provides CoopChain's indexed financial data.
-2. The CoopChain Risk API provides the financial snapshot required for evaluation.
-3. Chainlink CRE receives the financial data through its HTTP capability.
+1. The Graph provides indexed financial data.
+2. The CoopChain Risk API produces the financial snapshot required for evaluation.
+3. Chainlink CRE receives the data through its HTTP capability.
 4. The confidential handler executes inside the TEE.
 5. Private risk-policy parameters are evaluated inside the TEE.
-6. The workflow returns only a high-level risk classification and eligibility result.
-7. The AI Risk Agent can explain the resulting risk assessment.
+6. The workflow returns a high-level risk classification and eligibility result.
+7. The AI Risk Agent can explain the resulting assessment.
 
-The private policy parameters are intentionally not exposed by the workflow output.
+Private policy parameters are intentionally not exposed by the workflow output.
 
-The workflow evaluates factors including:
+The policy evaluates factors including:
 
 * Credit score
 * Loan-to-savings ratio
 * Repayment history
 
-The result is reduced to a high-level classification such as:
+Example output:
 
 ```json
 {
@@ -665,7 +684,7 @@ The result is reduced to a high-level classification such as:
 
 Chainlink CRE does **not** replace CoopChain's deterministic risk engine.
 
-Instead, it provides a confidential policy layer alongside the existing risk system.
+Instead, it provides a confidential policy layer alongside transparent financial calculations.
 
 ```text
 The Graph
@@ -688,13 +707,15 @@ The Graph
                         AI Risk Agent
 ```
 
-This architecture allows CoopChain to combine transparent financial calculations with confidential policy evaluation.
+This allows CoopChain to combine:
+
+**verifiable financial calculations + confidential policy evaluation + explainable AI.**
 
 ## CRE Simulation
 
 The workflow is configured for simulation through the Chainlink CRE CLI.
 
-The simulation requests execution in an AWS Nitro TEE and verifies the confidential workflow path:
+The simulation verifies the confidential workflow path:
 
 ```text
 ✓ Workflow compiled
@@ -706,7 +727,7 @@ The simulation requests execution in an AWS Nitro TEE and verifies the confident
 ✓ Simulation complete
 ```
 
-Example result:
+Example simulation result:
 
 ```text
 [USER LOG] Confidential CoopChain risk evaluation: HIGH
@@ -719,21 +740,7 @@ Workflow Simulation Result:
 }
 ```
 
-The intended confidential workflow path is:
-
-```text
-CoopChain Financial Data
-        ↓
-Risk API
-        ↓
-Chainlink CRE
-        ↓
-AWS Nitro TEE
-        ↓
-Confidential Policy
-        ↓
-Risk Result
-```
+> **Note:** The current CRE implementation demonstrates the confidential workflow through simulation. It should not be interpreted as a production TEE deployment.
 
 ---
 
@@ -743,7 +750,7 @@ CoopChain includes an AI-powered risk analysis layer that explains deterministic
 
 The AI agent does **not** replace the deterministic risk engine.
 
-Instead, it receives verified outputs from:
+It receives verified outputs from:
 
 * The Graph
 * `CreditScore.sol`
@@ -780,10 +787,10 @@ Chainlink Confidential Risk
 AI Risk Agent
         │
         ▼
-Human-readable explanation
+Human-readable Explanation
 ```
 
-The AI agent is therefore an explanation and decision-support layer rather than the authoritative source of financial truth.
+The AI agent is therefore an **explanation and decision-support layer**, rather than the authoritative source of financial truth.
 
 ---
 
@@ -836,13 +843,11 @@ The investment risk engine evaluates:
 * Transaction activity
 * Concentration indicators
 
-This produces a separate investment-risk assessment that can be combined with overall financial risk.
+This produces a separate investment-risk assessment that can be combined with the broader financial risk view.
 
 ---
 
-# 🔎 Risk Data Flow
-
-The complete risk architecture is:
+# 🔎 Complete Risk Data Flow
 
 ```text
                      Blockchain
@@ -851,36 +856,42 @@ The complete risk architecture is:
                     Arc Testnet
                          │
                          ▼
-                   The Graph
+                    The Graph
                          │
                          ▼
-                 CoopChain Risk API
+                CoopChain Risk API
                          │
           ┌──────────────┼──────────────┐
           │              │              │
           ▼              ▼              ▼
-      Member Risk    Loan Decision   Investment
-        Engine          Engine        Risk Engine
+     Member Risk     Loan Decision   Investment
+       Engine          Engine        Risk Engine
           │              │              │
           └──────────────┼──────────────┘
                          │
                          ▼
-                  Chainlink CRE
+                   Chainlink CRE
                          │
                          ▼
                   Confidential TEE
                          │
                          ▼
-                   Risk Result
+                    Risk Result
                          │
                          ▼
                    AI Risk Agent
                          │
                          ▼
-                 User Explanation
+                  User Explanation
 ```
 
-This architecture keeps financial truth onchain and indexed while separating deterministic calculations, confidential policy evaluation, and AI explanation.
+This architecture keeps:
+
+* Financial state onchain
+* Financial data indexed
+* Risk calculations deterministic
+* Confidential policy parameters private
+* AI interpretation separate from financial truth
 
 ---
 
@@ -926,19 +937,19 @@ forge build
 forge test
 ```
 
-## Run LoanEngine Tests
+## LoanEngine Tests
 
 ```bash
 forge test --match-path "test/unit/LoanEngineTest.t.sol" -vv
 ```
 
-## Run Arc Treasury Tests
+## Arc Treasury Tests
 
 ```bash
 forge test --match-path "test/unit/Arc/ArcTreasury.t.sol" -vv
 ```
 
-## Run Integration Tests
+## Integration Tests
 
 ```bash
 forge test --match-path "test/integration/**" -vv
@@ -969,7 +980,7 @@ forge snapshot
 * OpenZeppelin Contracts
 * ERC-20
 
-## Blockchain
+## Blockchain Infrastructure
 
 * Ethereum-compatible EVM networks
 * Arc Testnet
@@ -998,14 +1009,14 @@ forge snapshot
 
 # 🤝 Sponsor Integrations
 
-CoopChain uses multiple Web3 infrastructure ecosystems as **functional components of the protocol rather than isolated demonstrations**.
+CoopChain uses sponsor technologies as functional components of the architecture rather than isolated demonstrations.
 
 | Ecosystem     | Integration                      | Role                                       |
 | ------------- | -------------------------------- | ------------------------------------------ |
 | **Arc**       | Arc Testnet + USDC + ArcTreasury | Cooperative treasury and lending liquidity |
 | **Hedera**    | Asset Tokenization Studio        | Tokenized CCREF real-estate investment     |
 | **The Graph** | CoopChain subgraph               | Indexed financial data and risk analytics  |
-| **Chainlink** | CRE Confidential Workflow        | Confidential risk-policy evaluation in TEE |
+| **Chainlink** | CRE Confidential Workflow        | Confidential risk-policy evaluation        |
 
 ## Arc
 
@@ -1035,7 +1046,7 @@ Chainlink CRE provides the confidential computation layer used to evaluate a pri
 
 # 🌐 Arc Testnet
 
-Arc Testnet configuration:
+CoopChain's lending and financial-data demonstration uses Arc Testnet.
 
 ```text
 RPC:
@@ -1056,7 +1067,6 @@ Example:
 
 ```env
 ARC_TESTNET_RPC_URL="https://rpc.testnet.arc.network"
-
 PRIVATE_KEY="your_private_key"
 ```
 
@@ -1083,7 +1093,7 @@ Always verify the target network and contract configuration before broadcasting 
 
 ```text
 CoopChain/
-
+│
 ├── api/
 │   ├── src/
 │   │   ├── aiRiskAgent.ts
@@ -1106,10 +1116,21 @@ CoopChain/
 │   │   ├── config.staging.json
 │   │   ├── config.production.json
 │   │   ├── package.json
-│   │   ├── bun.lock
+│   │   ├── package-lock.json
 │   │   └── tsconfig.json
 │   ├── project.yaml
 │   └── secrets.yaml
+│
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── App.css
+│   │   ├── index.css
+│   │   └── main.tsx
+│   ├── public/
+│   ├── package.json
+│   ├── package-lock.json
+│   └── vite.config.ts
 │
 ├── graph/
 │   └── coopchain-risk/
@@ -1190,10 +1211,8 @@ CoopChain/
 │   │   ├── InvestmentToken.t.sol
 │   │   ├── LoanEngineTest.t.sol
 │   │   ├── Savings.t.sol
-│   │   │
 │   │   ├── Arc/
 │   │   │   └── ArcTreasury.t.sol
-│   │   │
 │   │   └── Hedera/
 │   │       └── HederaTokenization.t.sol
 │   │
@@ -1247,6 +1266,7 @@ node --version
 
 ```bash
 git clone git@github.com:max-wire/CoopChain.git
+
 cd CoopChain
 ```
 
@@ -1286,7 +1306,7 @@ forge test
 
 # 🔬 Risk API
 
-The CoopChain Risk API provides a backend interface over the indexed financial data and deterministic risk engines.
+The CoopChain Risk API provides a backend interface over indexed financial data and deterministic risk engines.
 
 The API combines:
 
@@ -1342,7 +1362,6 @@ The confidential workflow is located in:
 
 ```text
 coopchain-risk/
-
 └── coopchain-risk/
     ├── main.ts
     ├── config.staging.json
@@ -1354,6 +1373,7 @@ Install workflow dependencies:
 
 ```bash
 cd coopchain-risk/coopchain-risk
+
 bun install
 ```
 
@@ -1429,7 +1449,9 @@ This separation makes the system easier to:
 
 # 🧭 Future Direction
 
-Future versions of CoopChain can extend the current architecture with:
+The current implementation provides the foundation for a broader cooperative financial operating system.
+
+Potential future extensions include:
 
 * Historical repayment-based credit scoring
 * More sophisticated debt-to-savings analysis
@@ -1451,22 +1473,39 @@ The long-term goal is to create an **onchain financial operating system for coop
 
 # 🏆 ETHOnline 2026
 
-CoopChain is being developed for **ETHOnline 2026**.
+CoopChain was developed for **ETHOnline 2026**.
 
-The project combines:
+The project brings together:
 
 **Cooperative Finance + DeFi + Actuarial Science + Tokenization + Onchain Risk Management + Confidential Computing + AI**
 
 The current implementation demonstrates functional integrations with:
 
-* **Arc** — USDC treasury and lending
+* **Arc** — USDC treasury and lending infrastructure
 * **Hedera** — tokenized real-estate investment infrastructure
 * **The Graph** — indexed financial data and risk analytics
 * **Chainlink CRE** — confidential risk-policy evaluation
 
-The project architecture is designed around a simple principle:
+The project is designed around one principle:
 
 > **Financial truth should be verifiable, risk decisions should be systematic, sensitive policies can remain confidential, and AI should explain rather than invent the decision.**
+
+---
+
+# 🤖 AI-Assisted Development Disclosure
+
+AI tools were used during development for:
+
+* Code assistance
+* Debugging
+* Refactoring
+* UI implementation
+* Documentation
+* Development workflow support
+
+The project's **architecture, financial and actuarial models, smart-contract design, risk methodology, integration decisions, testing strategy, and final implementation were directed and reviewed by the project developer**.
+
+AI is also used within the product as an **explanation and decision-support layer**, not as the authoritative source of financial truth.
 
 ---
 
